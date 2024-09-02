@@ -34,7 +34,7 @@ func InitDB() *sql.DB {
 	// create users table
 	createUsersTableSQL := `CREATE TABLE IF NOT EXISTS users (
 		"id_user" integer NOT NULL PRIMARY KEY AUTOINCREMENT,		
-		"name" TEXT,
+		"name" TEXT UNIQUE,
 		"is_admin" BOOLEAN
 	  );` // SQL Statement for Create Table
 
@@ -81,8 +81,8 @@ func InitDB() *sql.DB {
 }
 
 func MakeAdmin(db *sql.DB, username string) {
-	q := `UPDATE users SET is_admin = 1 WHERE name = ?;`
-	_, err := db.Exec(q, username)
+	q := `UPDATE users SET is_admin = 1 WHERE id_user = ?;`
+	_, err := db.Exec(q, GetUserId(db, username))
 	if err != nil {
 		panic(err)
 	}
@@ -90,25 +90,36 @@ func MakeAdmin(db *sql.DB, username string) {
 }
 
 func UserExists(db *sql.DB, username string) bool {
-	var row *sql.Rows
-	var err error
-	q := `SELECT * FROM users WHERE name = ?`
-	row, err = db.Query(q, username)
+	var count int
+	q := `SELECT COUNT(name) FROM users WHERE name = ?`
+	row := db.QueryRow(q, username)
+	err := row.Scan(&count)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer row.Close()
-	var id_user int
-	var name string
-	counter := 0
-	for row.Next() {
-		if scan_err := row.Scan(&id_user, &name); err != nil {
-			log.Fatal(scan_err)
-		}
-		counter++
-	}
-	return counter == 1
+	return count == 1
 }
+
+// func UserExists(db *sql.DB, username string) bool {
+// 	var row *sql.Rows
+// 	var err error
+// 	q := `SELECT * FROM users WHERE name = ?`
+// 	row, err = db.Query(q, username)
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	defer row.Close()
+// 	var id_user int
+// 	var name string
+// 	counter := 0
+// 	for row.Next() {
+// 		if scan_err := row.Scan(&id_user, &name); err != nil {
+// 			log.Fatal(scan_err)
+// 		}
+// 		counter++
+// 	}
+// 	return counter == 1
+// }
 
 func UserIsAdmin(db *sql.DB, username string) bool {
 	var row *sql.Rows
