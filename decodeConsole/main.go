@@ -59,8 +59,8 @@ func main() {
 					database.CreateResorce(db, current_user, reader)
 				} else if options[1] == "alias" {
 					database.CreateAlias(db, current_user, reader)
-				} else if current_user == "admin" && options[1] == "user" {
-					database.CreateUser(db, reader)
+				} else if options[1] == "user" {
+					database.CreateUser(db, current_user, reader)
 				} else {
 					InpError()
 				}
