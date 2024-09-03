@@ -1,13 +1,11 @@
 package database
 
 import (
-	"bufio"
 	"database/sql"
 	"errors"
 	"fmt"
 	"log"
 	"os"
-	"strings"
 
 	_ "github.com/mattn/go-sqlite3" // Import go-sqlite3 library
 )
@@ -100,27 +98,6 @@ func UserExists(db *sql.DB, username string) bool {
 	return count == 1
 }
 
-// func UserExists(db *sql.DB, username string) bool {
-// 	var row *sql.Rows
-// 	var err error
-// 	q := `SELECT * FROM users WHERE name = ?`
-// 	row, err = db.Query(q, username)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	defer row.Close()
-// 	var id_user int
-// 	var name string
-// 	counter := 0
-// 	for row.Next() {
-// 		if scan_err := row.Scan(&id_user, &name); err != nil {
-// 			log.Fatal(scan_err)
-// 		}
-// 		counter++
-// 	}
-// 	return counter == 1
-// }
-
 func UserIsAdmin(db *sql.DB, username string) bool {
 	var row *sql.Rows
 	var err error
@@ -155,11 +132,8 @@ func InsertUsers(db *sql.DB, name string) {
 	}
 }
 
-func AdminCreateNewUser(db *sql.DB, reader *bufio.Reader) {
-	fmt.Print("Enter a username you want to create: ")
-	input, _ := reader.ReadString('\n')
-	input = strings.TrimSpace(input)
-	if UserExists(db, input) {
+func AdminCreateNewUser(db *sql.DB, username string) {
+	if UserExists(db, username) {
 		fmt.Println("This user already exists")
 	} else {
 		fmt.Println("Inserting users record ...")
@@ -169,11 +143,11 @@ func AdminCreateNewUser(db *sql.DB, reader *bufio.Reader) {
 		if err != nil {
 			log.Fatalln(err.Error())
 		}
-		_, err = statement.Exec(input)
+		_, err = statement.Exec(username)
 		if err != nil {
 			log.Fatalln(err.Error())
 		}
-		fmt.Println("New user created: ", input)
+		fmt.Println("New user created: ", username)
 	}
 }
 
@@ -241,11 +215,8 @@ func CheckIfAliasHasNoDupes(db *sql.DB, alias string) bool {
 
 // region authorisation
 
-func RegisterUser(db *sql.DB, r *bufio.Reader) string {
+func RegisterUser(db *sql.DB, username string) string {
 	fmt.Print("\n---------------\nInitiating registration...\n\n")
-	fmt.Print("Enter your preffered username: ")
-	username, _ := r.ReadString('\n')
-	username = strings.TrimSpace(username)
 	if UserExists(db, username) {
 		fmt.Print("\nWelcome back, ", username, "!\n")
 	} else {
@@ -258,19 +229,9 @@ func RegisterUser(db *sql.DB, r *bufio.Reader) string {
 
 // region create
 
-func CreateResorce(db *sql.DB, username string, reader *bufio.Reader) {
-	var name, content string
-	fmt.Print("Type in the content of your resource. Press Enter to finish typing:\n")
-	content, _ = reader.ReadString('\n')
-	content = strings.TrimSpace(content)
-	fmt.Print("\nType in the name for this resource: ")
-	name, _ = reader.ReadString('\n')
-	name = strings.TrimSpace(name)
-	for !CheckIfResourceHasNoDupNames(db, username, name) {
-		fmt.Println("You already have this name for a resource! Choose another one!")
-		fmt.Print("\nType in the name for this resource: ")
-		name, _ = reader.ReadString('\n')
-		name = strings.TrimSpace(name)
+func CreateResorce(db *sql.DB, username string, name string, content string) {
+	if !CheckIfResourceHasNoDupNames(db, username, name) {
+		return // This name is occupied
 	}
 	fmt.Println("Adding new resource...")
 	InsertResources(db, GetUserId(db, username), name, content)
@@ -291,19 +252,9 @@ func InsertResources(db *sql.DB, id_user int, name string, content string) {
 	}
 }
 
-func CreateAlias(db *sql.DB, username string, reader *bufio.Reader) {
-	var resource_name, alias string
-	fmt.Print("Type in the name of the resource you want to create an alias for.\n")
-	resource_name, _ = reader.ReadString('\n')
-	resource_name = strings.TrimSpace(resource_name)
-	fmt.Print("\n\nType in the alias for this resource: ")
-	alias, _ = reader.ReadString('\n')
-	alias = strings.TrimSpace(alias)
-	for !CheckIfAliasHasNoDupes(db, alias) {
-		fmt.Println("This Alias already exists, please choose another one.")
-		fmt.Print("\nType in the alias for this resource: ")
-		alias, _ = reader.ReadString('\n')
-		alias = strings.TrimSpace(alias)
+func CreateAlias(db *sql.DB, username string, resource_name string, alias string) {
+	if !CheckIfAliasHasNoDupes(db, alias) {
+		return //alias name already exists
 	}
 	fmt.Println("Adding new alias...")
 	InsertAlias(db, GetUserId(db, username), GetResourceId(db, username, resource_name), alias)
@@ -324,14 +275,11 @@ func InsertAlias(db *sql.DB, id_user int, id_resource int, name string) {
 	}
 }
 
-func CreateUser(db *sql.DB, username string, reader *bufio.Reader) {
+func CreateUser(db *sql.DB, username string, name string) {
 	if !UserIsAdmin(db, username) {
 		fmt.Println("You do not have the rights to create new users")
 		return
 	}
-	fmt.Print("Type in the username you want to add: ")
-	name, _ := reader.ReadString('\n')
-	name = strings.TrimSpace(name)
 	if UserExists(db, name) {
 		fmt.Println("This username is occupied.")
 	} else {
@@ -341,17 +289,11 @@ func CreateUser(db *sql.DB, username string, reader *bufio.Reader) {
 
 // region alias
 
-func AliasConnect(db *sql.DB, username string, reader *bufio.Reader) {
-	fmt.Print("Type in the alias you want to connect to a resource: ")
-	alias, _ := reader.ReadString('\n')
-	alias = strings.TrimSpace(alias)
+func AliasConnect(db *sql.DB, username string, resource string, alias string) {
 	if CheckIfAliasHasNoDupes(db, alias) {
 		fmt.Println("There is no such alias...")
 		return
 	}
-	fmt.Print("Type in the name of the resource you want to connect an alias to: ")
-	resource, _ := reader.ReadString('\n')
-	resource = strings.TrimSpace(resource)
 	if CheckIfResourceHasNoDupNames(db, username, resource) {
 		fmt.Println("There is no such resource...")
 		return
@@ -364,10 +306,7 @@ func AliasConnect(db *sql.DB, username string, reader *bufio.Reader) {
 	fmt.Println("Alias <", alias, "> was connected to resource <", resource, ">")
 }
 
-func AliasDisconnect(db *sql.DB, username string, reader *bufio.Reader) {
-	fmt.Print("Type in the alias you want to disconnect from a resource: ")
-	alias, _ := reader.ReadString('\n')
-	alias = strings.TrimSpace(alias)
+func AliasDisconnect(db *sql.DB, username string, alias string) {
 	if CheckIfAliasHasNoDupes(db, alias) {
 		fmt.Println("There is no such alias...")
 		return
@@ -466,67 +405,53 @@ func ShowAlias(db *sql.DB, username string) {
 
 // region delete
 
-func DeleteResource(db *sql.DB, username string, reader *bufio.Reader) {
-	if UserIsAdmin(db, username) {
-		fmt.Print("Enter a username for which you want to delete a resource: ")
-		username, _ = reader.ReadString('\n')
-		username = strings.TrimSpace(username)
+func DeleteResource(db *sql.DB, username string, target string, resource string) {
+	if !UserIsAdmin(db, username) {
+		target = username
 	}
-	fmt.Print("Enter the name of a resource you want to delete: ")
-	resource, _ := reader.ReadString('\n')
-	resource = strings.TrimSpace(resource)
 	log.Println("Deleting resource ", resource)
 	q := `DELETE FROM resources WHERE id_user = ? and name = ?`
-	_, err := db.Exec(q, GetUserId(db, username), resource)
+	_, err := db.Exec(q, GetUserId(db, target), resource)
 	if err != nil {
 		panic(err)
 	}
 
 }
 
-func DeleteUser(db *sql.DB, username string, reader *bufio.Reader) string {
-	var name string
-	if UserIsAdmin(db, username) {
-		fmt.Print("Enter a username for which you want to delete entries for: ")
-		name, _ = reader.ReadString('\n')
-		name = strings.TrimSpace(name)
-	} else {
-		name = username
+func DeleteUser(db *sql.DB, username string, target string) string {
+	if !UserIsAdmin(db, username) {
+		target = username
 	}
-	log.Println("Deleting all resources for user ", name)
+	log.Println("Deleting all resources for user ", target)
 	q := `DELETE FROM resources WHERE id_user = ?`
-	_, err := db.Exec(q, GetUserId(db, name))
+	_, err := db.Exec(q, GetUserId(db, target))
 	if err != nil {
 		panic(err)
 	}
-	log.Println("Deleting user ", name)
+	log.Println("Deleting user ", target)
 	q = `DELETE FROM users WHERE name = ?`
-	_, err = db.Exec(q, name)
+	_, err = db.Exec(q, target)
 	if err != nil {
 		panic(err)
 	}
-	if name == username {
-		username = RegisterUser(db, reader)
+	if target == username {
+
+		// ENTER A NEW USERNAME AND...
+		username = RegisterUser(db, username /*NEW USERNAME*/)
 	}
 	return username
-
 }
 
 // region read
 
-func ReadResource(db *sql.DB, username string, reader *bufio.Reader) {
-	if UserIsAdmin(db, username) {
-		fmt.Print("Enter a username for which you want to read a resource: ")
-		username, _ = reader.ReadString('\n')
-		username = strings.TrimSpace(username)
+func ReadResource(db *sql.DB, username string, target string, resource_name string) {
+	if !UserIsAdmin(db, username) {
+		target = username
 	}
-	fmt.Print("Enter a name of the resource you want to read: ")
-	name, _ := reader.ReadString('\n')
-	name = strings.TrimSpace(name)
 	var row *sql.Rows
 	var err error
 	q := `SELECT content FROM resources WHERE id_user = ? AND name = ?`
-	row, err = db.Query(q, username, name)
+	row, err = db.Query(q, target, resource_name)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -541,18 +466,15 @@ func ReadResource(db *sql.DB, username string, reader *bufio.Reader) {
 		counter++
 	}
 	if counter == 0 {
-		fmt.Println("No resource with name <", name, "> Error...")
+		fmt.Println("No resource with name <", resource_name, "> Error...")
 	}
 }
 
-func ReadAlias(db *sql.DB, reader *bufio.Reader) {
+func ReadAlias(db *sql.DB, alias string) {
 	var row *sql.Rows
 	var err error
-	fmt.Print("Enter an alias for the resource you want to read: ")
-	name, _ := reader.ReadString('\n')
-	name = strings.TrimSpace(name)
 	q := `SELECT content FROM resources WHERE id_resource = (SELECT id_resource FROM alias WHERE name = ?)`
-	row, err = db.Query(q, name)
+	row, err = db.Query(q, alias)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -567,19 +489,19 @@ func ReadAlias(db *sql.DB, reader *bufio.Reader) {
 		counter++
 	}
 	if counter == 0 {
-		fmt.Println("No resource was found with alias <", name, "> Error...")
+		fmt.Println("No resource was found with alias <", alias, "> Error...")
 	}
 }
 
 //region change
 
-func ChangeUser(db *sql.DB, username string, reader *bufio.Reader) string {
+func ChangeUser(db *sql.DB, username string) string {
 	if UserExists(db, username) {
 		fmt.Println("\nUsername changed to <", username, ">")
 		return username
 	} else {
 		fmt.Print("\nNo such user <", username, ">\nRedirecting to user registration\n\n")
-		username = RegisterUser(db, reader)
+		username = RegisterUser(db, username)
 		fmt.Print("\nUsername changed to <", username, ">\n")
 		return username
 	}
