@@ -21,7 +21,7 @@ func Help() {
 }
 
 func InpError() {
-	fmt.Println("\n!___Incorrect input___!\n")
+	fmt.Println("\n!___Incorrect input___!")
 }
 
 func SpecifyContext() {
