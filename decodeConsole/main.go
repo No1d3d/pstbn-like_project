@@ -4,7 +4,6 @@ import (
 	"bufio"
 	database "cdecode/storage"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 )
@@ -22,11 +21,21 @@ func Help() {
 }
 
 func InpError() {
-	fmt.Println("-----------------------\n!___Incorrect input___!\n-----------------------")
+	fmt.Println("\n!___Incorrect input___!\n")
 }
 
 func SpecifyContext() {
 	fmt.Println("Please specify context!")
+}
+
+func AskForInput(reader *bufio.Reader, context string) string {
+	fmt.Print(context)
+	input, err := reader.ReadString('\n')
+	if err != nil {
+		panic(err)
+	}
+	input = strings.TrimSpace(input)
+	return input
 }
 
 func main() {
@@ -37,87 +46,106 @@ func main() {
 	// res := strings.Split(input, " ")
 	// fmt.Print(res[0])
 	db := database.InitDB()
-	var current_user string
 	reader := bufio.NewReader(os.Stdin)
-	current_user = database.RegisterUser(db, reader)
+	current_user := AskForInput(reader, "Enter your desired username: ")
+	current_user = database.RegisterUser(db, current_user)
 	Help()
 	for {
-		fmt.Print("Enter desired operation: ")
-		reader := bufio.NewReader(os.Stdin)
-		input, err := reader.ReadString('\n')
-		input = strings.TrimSpace(input)
+		input := AskForInput(reader, "Enter desired operation: ")
 		options := strings.Split(input, " ")
-		if err != nil {
-			log.Fatal(err)
-		} else {
-			if options[0] == "help" {
-				Help()
-			} else if options[0] == "create" {
-				if len(options) == 1 {
-					SpecifyContext()
-				} else if options[1] == "resource" {
-					database.CreateResorce(db, current_user, reader)
-				} else if options[1] == "alias" {
-					database.CreateAlias(db, current_user, reader)
-				} else if options[1] == "user" {
-					database.CreateUser(db, current_user, reader)
-				} else {
-					InpError()
-				}
-			} else if options[0] == "alias" {
-				if len(options) == 1 {
-					SpecifyContext()
-				} else if options[1] == "connect" {
-					database.AliasConnect(db, current_user, reader)
-				} else if options[1] == "disconnect" {
-					database.AliasDisconnect(db, current_user, reader)
-				} else {
-					InpError()
-				}
-			} else if options[0] == "show" {
-				if len(options) == 1 {
-					SpecifyContext()
-				} else if options[1] == "users" {
-					database.ShowUsers(db, current_user)
-				} else if options[1] == "resources" {
-					database.ShowResources(db, current_user)
-				} else if options[1] == "alias" {
-					database.ShowAlias(db, current_user)
-				} else {
-					InpError()
-				}
-			} else if options[0] == "delete" {
-				if len(options) == 1 {
-					SpecifyContext()
-				} else if options[1] == "resources" {
-					database.DeleteResource(db, current_user, reader)
-				} else if options[1] == "users" {
-					current_user = database.DeleteUser(db, current_user, reader)
-				} else {
-					InpError()
-				}
-			} else if options[0] == "read" {
-				if len(options) == 1 {
-					SpecifyContext()
-				} else if options[1] == "resource" {
-					database.ReadResource(db, current_user, reader)
-				} else if options[1] == "alias" {
-					database.ReadAlias(db, reader)
-				} else {
-					InpError()
-				}
-			} else if options[0] == "change" {
-				if len(options) == 1 {
-					SpecifyContext()
-				} else if options[1] != "" {
-					current_user = database.ChangeUser(db, options[1], reader)
+		if options[0] == "help" {
+			Help()
+		} else if options[0] == "create" {
+			if len(options) == 1 {
+				SpecifyContext()
+			} else if options[1] == "resource" {
+				content := AskForInput(reader, "Enter content for your desired resource: ")
+				name := AskForInput(reader, "Enter a name for this resource: ")
+				database.CreateResorce(db, current_user, name, content)
+			} else if options[1] == "alias" {
+				resource_name := AskForInput(reader, "Enter the name of the resource you want to create an alias for: ")
+				alias := AskForInput(reader, "Enter an alias for this resource: ")
+				database.CreateAlias(db, current_user, resource_name, alias)
+			} else if options[1] == "user" {
+				if database.UserIsAdmin(db, current_user) {
+					name := AskForInput(reader, "Enter a username for a user you want to create: ")
+					database.CreateUser(db, current_user, name)
 				} else {
 					InpError()
 				}
 			} else {
 				InpError()
 			}
-
+		} else if options[0] == "alias" {
+			if len(options) == 1 {
+				SpecifyContext()
+			} else if options[1] == "connect" {
+				resource_name := AskForInput(reader, "Enter the name of the resource you want to create an alias for: ")
+				alias := AskForInput(reader, "Enter an alias you want to connect to this resource: ")
+				database.AliasConnect(db, current_user, resource_name, alias)
+			} else if options[1] == "disconnect" {
+				alias := AskForInput(reader, "Enter an alias you want to disconnect from a resource: ")
+				database.AliasDisconnect(db, current_user, alias)
+			} else {
+				InpError()
+			}
+		} else if options[0] == "show" {
+			if len(options) == 1 {
+				SpecifyContext()
+			} else if options[1] == "users" {
+				database.ShowUsers(db, current_user)
+			} else if options[1] == "resources" {
+				database.ShowResources(db, current_user)
+			} else if options[1] == "alias" {
+				database.ShowAlias(db, current_user)
+			} else {
+				InpError()
+			}
+		} else if options[0] == "delete" {
+			if len(options) == 1 {
+				SpecifyContext()
+			} else if options[1] == "resources" {
+				target := current_user
+				if database.UserIsAdmin(db, current_user) {
+					target = AskForInput(reader, "Enter a username, whose resource you want to delete: ")
+				}
+				resource_name := AskForInput(reader, "Enter a name of the resource you want to read: ")
+				database.DeleteResource(db, current_user, target, resource_name)
+			} else if options[1] == "users" {
+				target := current_user
+				if database.UserIsAdmin(db, current_user) {
+					target = AskForInput(reader, "Enter a username you want to delete: ")
+				}
+				current_user = database.DeleteUser(db, current_user, target)
+			} else {
+				InpError()
+			}
+		} else if options[0] == "read" {
+			if len(options) == 1 {
+				SpecifyContext()
+			} else if options[1] == "resource" {
+				target := current_user
+				if database.UserIsAdmin(db, current_user) {
+					target = AskForInput(reader, "Enter a username, whose resource you want to read: ")
+				}
+				resource_name := AskForInput(reader, "Enter a name of the resource you want to read: ")
+				database.ReadResource(db, current_user, target, resource_name)
+			} else if options[1] == "alias" {
+				alias := AskForInput(reader, "Enter an alias to read a resource assigned to it: ")
+				database.ReadAlias(db, alias)
+			} else {
+				InpError()
+			}
+		} else if options[0] == "change" {
+			if len(options) == 1 {
+				SpecifyContext()
+			} else if options[1] != "" {
+				current_user = database.ChangeUser(db, options[1])
+			} else {
+				InpError()
+			}
+		} else {
+			InpError()
 		}
 	}
 }
