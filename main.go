@@ -93,9 +93,21 @@ func main() {
 			if len(options) == 1 {
 				SpecifyContext()
 			} else if options[1] == "users" {
-				database.ShowUsers(db, current_user)
+				users := database.GetUsers(db, current_user)
+
+				fmt.Println("\tid_u | name | is_adm")
+				for _, u := range users {
+					fmt.Println("\t", u.Id, " | ", u.Name, " | ", u.IsAdmin)
+				}
+
 			} else if options[1] == "resources" {
-				database.ShowResources(db, current_user)
+				resources := database.GetResources(db, current_user)
+
+				fmt.Println("\tid_r | id_u | name | content")
+				for _, r := range resources {
+					fmt.Println("\t", r.Id, " | ", r.User, " | ", r.Name, " | ", r.Content)
+				}
+
 			} else if options[1] == "alias" {
 				aliases := database.GetAliases(db, current_user)
 
@@ -139,7 +151,8 @@ func main() {
 					target = AskForInput(reader, "Enter a username, whose resource you want to read: ")
 				}
 				resource_name := AskForInput(reader, "Enter a name of the resource you want to read: ")
-				database.ReadResource(db, current_user, target, resource_name)
+				content := database.ReadContentByResource(db, target, resource_name)
+				fmt.Printf("Content:\n\n'%s'\n", content)
 			} else if options[1] == "alias" {
 				alias := AskForInput(reader, "Enter an alias to read a resource assigned to it: ")
 				content := database.ReadContentByAlias(db, alias)
