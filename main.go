@@ -48,7 +48,7 @@ func main() {
 	db := database.InitDB()
 	reader := bufio.NewReader(os.Stdin)
 	current_user := AskForInput(reader, "Enter your desired username: ")
-	current_user = database.RegisterUser(db, current_user)
+	database.RegisterUser(db, current_user)
 	Help()
 	for {
 		input := AskForInput(reader, "Enter desired operation: ")
@@ -119,10 +119,14 @@ func main() {
 				database.DeleteResource(db, current_user, target, resource_name)
 			} else if options[1] == "users" {
 				target := current_user
+				new_username := ""
 				if database.UserIsAdmin(db, current_user) {
 					target = AskForInput(reader, "Enter a username you want to delete: ")
 				}
-				current_user = database.DeleteUser(db, current_user, target)
+				if target == current_user {
+					new_username = AskForInput(reader, "Enter a your new account name: ")
+				}
+				database.DeleteUser(db, &current_user, target, new_username)
 			} else {
 				InpError()
 			}
@@ -146,7 +150,7 @@ func main() {
 			if len(options) == 1 {
 				SpecifyContext()
 			} else if options[1] != "" {
-				current_user = database.ChangeUser(db, options[1])
+				database.ChangeUser(db, &current_user, options[1])
 			} else {
 				InpError()
 			}

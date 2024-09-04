@@ -215,7 +215,13 @@ func CheckIfAliasHasNoDupes(db *sql.DB, alias string) bool {
 
 // region authorisation
 
-func RegisterUser(db *sql.DB, username string) string {
+// Авторизация:
+// пользователь вводит имя
+// имя передается в БД и проверяется на наличие в ней
+// Если имя существует - логин
+// если нет - Авторизация
+
+func RegisterUser(db *sql.DB, username string) {
 	fmt.Print("\n---------------\nInitiating registration...\n\n")
 	if UserExists(db, username) {
 		fmt.Print("\nWelcome back, ", username, "!\n")
@@ -224,7 +230,6 @@ func RegisterUser(db *sql.DB, username string) string {
 		fmt.Print("\nNice to meet you, ", username, "!\n")
 	}
 	fmt.Print("\n\nAuthorisation complete!\n---------------\n\n")
-	return username
 }
 
 // region create
@@ -383,7 +388,7 @@ func DeleteResource(db *sql.DB, username string, target string, resource string)
 
 }
 
-func DeleteUser(db *sql.DB, username string, target string) string {
+func DeleteUser(db *sql.DB, username *string, target string, new_username string) {
 	log.Println("Deleting all resources for user ", target)
 	q := `DELETE FROM resources WHERE id_user = ?`
 	_, err := db.Exec(q, GetUserId(db, target))
@@ -396,12 +401,10 @@ func DeleteUser(db *sql.DB, username string, target string) string {
 	if err != nil {
 		panic(err)
 	}
-	if target == username {
-
-		// ENTER A NEW USERNAME AND...
-		username = RegisterUser(db, username /*NEW USERNAME*/)
+	if target == *username {
+		RegisterUser(db, new_username)
+		username = &new_username
 	}
-	return username
 }
 
 // region read
@@ -454,17 +457,12 @@ func ReadAlias(db *sql.DB, alias string) {
 
 //region change
 
-func ChangeUser(db *sql.DB, username string) string {
-	if UserExists(db, username) {
-		fmt.Println("\nUsername changed to <", username, ">")
-		return username
-	} else {
-		fmt.Print("\nNo such user <", username, ">\nRedirecting to user registration\n\n")
-		username = RegisterUser(db, username)
-		fmt.Print("\nUsername changed to <", username, ">\n")
-		return username
+func ChangeUser(db *sql.DB, username *string, new_username string) {
+	if !UserExists(db, new_username) {
+		fmt.Print("\nNo such user <", new_username, ">\nRedirecting to user registration\n\n")
+		RegisterUser(db, new_username)
 	}
-
+	username = &new_username
 }
 
 // endregion
