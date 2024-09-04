@@ -1,0 +1,97 @@
+@host=http://localhost:1488
+
+###
+
+# Get all aliases
+GET {{host}}/alias
+
+###
+
+# Create new alias
+POST {{host}}/alias
+
+{
+  "target": "12",
+  "name": "new alias"
+}
+
+###
+
+DELETE {{host}}/alias
+
+{
+  "id": "12"
+}
+
+###
+
+# Get specified resource
+GET  {{host}}/resource
+
+{
+  "name": "name"
+}
+# name can be alias
+
+###
+
+# Create resource
+POST {{host}}/resource
+
+{
+  "userId": "user_id",
+  "resourceName": "name",
+  "resourceContent": "lorem ipsum"
+}
+
+###
+
+# Delete specified resource
+DELETE {{host}}/resource
+
+{
+  "id": "id",
+  "userId": "user_id"
+}
+
+###
+
+# Get user id based on username
+POST {{host}}/auth
+
+{
+  "username": "user1"
+}
+
+###
+
+# Get users
+GET {{host}}/users
+
+###
+
+# Create new user
+POST {{host}}/user
+
+{
+  "username": "Katy248"
+}
+
+###
+
+# Update user data
+POST {{host}}/user/update
+
+{
+  "id": "userId",
+  "newUsername": "CoolerUsername"
+}
+
+###
+
+# Delete user by id
+DELETE {{host}}/user
+
+{
+  "id": "user id"
+}
