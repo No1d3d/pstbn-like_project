@@ -313,13 +313,13 @@ func GetUsers(db *sql.DB, username string) []User {
 	var row *sql.Rows
 	var err error
 	var q string
-	if UserIsAdmin(db, username) {
-		q = `SELECT * FROM users`
-		row, err = db.Query(q)
-	} else {
-		q = `SELECT * FROM users WHERE id_user = ?`
-		row, err = db.Query(q, GetUserId(db, username))
-	}
+	//if UserIsAdmin(db, username) {
+	q = `SELECT * FROM users`
+	row, err = db.Query(q)
+	//} else {
+	// q = `SELECT * FROM users WHERE id_user = ?`
+	// row, err = db.Query(q, GetUserId(db, username))
+	// }
 	if err != nil {
 		log.Fatal(err)
 	}
