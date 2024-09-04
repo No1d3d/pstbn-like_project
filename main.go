@@ -142,7 +142,8 @@ func main() {
 				database.ReadResource(db, current_user, target, resource_name)
 			} else if options[1] == "alias" {
 				alias := AskForInput(reader, "Enter an alias to read a resource assigned to it: ")
-				database.ReadAlias(db, alias)
+				content := database.ReadContentByAlias(db, alias)
+				fmt.Printf("Content:\n\n'%s'\n", content)
 			} else {
 				InpError()
 			}
