@@ -201,18 +201,6 @@ func GetResourceId(db *sql.DB, username, resource_name string) int {
 	return id_resource
 }
 
-// check no duplicated name of alias
-func CheckIfAliasHasNoDupes(db *sql.DB, alias string) bool {
-	var count int
-	q := `SELECT COUNT(name) FROM alias WHERE name = ?`
-	row := db.QueryRow(q, alias)
-	err := row.Scan(&count)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return count == 0
-}
-
 // region authorisation
 
 func RegisterUser(db *sql.DB, username string) string {
@@ -252,29 +240,6 @@ func InsertResources(db *sql.DB, id_user int, name string, content string) {
 	}
 }
 
-func CreateAlias(db *sql.DB, username string, resource_name string, alias string) {
-	if !CheckIfAliasHasNoDupes(db, alias) {
-		return //alias name already exists
-	}
-	fmt.Println("Adding new alias...")
-	InsertAlias(db, GetUserId(db, username), GetResourceId(db, username, resource_name), alias)
-	fmt.Println("New alias added!")
-}
-
-func InsertAlias(db *sql.DB, id_user int, id_resource int, name string) {
-	fmt.Println("Inserting alias record ...")
-	insertAliasSQL := `INSERT INTO alias(id_user, id_resource, name) VALUES (?, ?, ?)`
-	statement, err := db.Prepare(insertAliasSQL) // Prepare statement.
-	// This is good to avoid SQL injections
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-	_, err = statement.Exec(id_user, id_resource, name)
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-}
-
 func CreateUser(db *sql.DB, username string, name string) {
 	if UserExists(db, name) {
 		fmt.Println("This username is occupied.")
@@ -286,7 +251,7 @@ func CreateUser(db *sql.DB, username string, name string) {
 // region alias
 
 func AliasConnect(db *sql.DB, username string, resource string, alias string) {
-	if CheckIfAliasHasNoDupes(db, alias) {
+	if checkIfAliasHasNoDupes(db, alias) {
 		fmt.Println("There is no such alias...")
 		return
 	}
@@ -303,7 +268,7 @@ func AliasConnect(db *sql.DB, username string, resource string, alias string) {
 }
 
 func AliasDisconnect(db *sql.DB, username string, alias string) {
-	if CheckIfAliasHasNoDupes(db, alias) {
+	if checkIfAliasHasNoDupes(db, alias) {
 		fmt.Println("There is no such alias...")
 		return
 	}
@@ -426,29 +391,6 @@ func ReadResource(db *sql.DB, username string, target string, resource_name stri
 	}
 	if counter == 0 {
 		fmt.Println("No resource with name <", resource_name, "> Error...")
-	}
-}
-
-func ReadAlias(db *sql.DB, alias string) {
-	var row *sql.Rows
-	var err error
-	q := `SELECT content FROM resources WHERE id_resource = (SELECT id_resource FROM alias WHERE name = ?)`
-	row, err = db.Query(q, alias)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer row.Close()
-	var content string
-	counter := 0
-	for row.Next() {
-		if scan_err := row.Scan(&content); err != nil {
-			log.Fatal(scan_err)
-		}
-		fmt.Println("\t", content)
-		counter++
-	}
-	if counter == 0 {
-		fmt.Println("No resource was found with alias <", alias, "> Error...")
 	}
 }
 
