@@ -28,19 +28,21 @@ func CheckFileExists(filePath string) bool {
 	return !errors.Is(error, os.ErrNotExist)
 }
 
+var DbFile = "./storage/mydb.db"
+
 func InitDB() *sql.DB {
 	// if db does not exist, creates one
-	if !CheckFileExists("./storage/mydb.db") {
-		fmt.Println("Creating mydb.db...")
-		file, err := os.Create("./storage/mydb.db")
+	if !CheckFileExists(DbFile) {
+		log.Printf("Creating database file '%s'\n", DbFile)
+		file, err := os.Create(DbFile)
 		if err != nil {
 			log.Fatal(err.Error())
 		}
 		file.Close()
-		fmt.Println("mydb.db created")
+		log.Printf("Database file '%s' created", DbFile)
 	}
 	// opens db
-	db, _ := sql.Open("sqlite3", "./storage/mydb.db")
+	db, _ := sql.Open("sqlite3", DbFile)
 
 	// create users table
 	createUsersTableSQL := `CREATE TABLE IF NOT EXISTS users (
@@ -48,14 +50,7 @@ func InitDB() *sql.DB {
 		"name" TEXT UNIQUE,
 		"is_admin" BOOLEAN
 	  );` // SQL Statement for Create Table
-
-	fmt.Println("Create users table...")
-	statement, err := db.Prepare(createUsersTableSQL) // Prepare SQL Statement
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-	statement.Exec() // Execute SQL Statements
-	fmt.Println("users table created")
+	createTable(db, createUsersTableSQL)
 
 	// create resources table
 	createResourcesTableSQL := `CREATE TABLE IF NOT EXISTS resources (
@@ -64,14 +59,7 @@ func InitDB() *sql.DB {
 		"name" TEXT,
 		"content" TEXT		
 	  );` // SQL Statement for Create Table
-
-	fmt.Println("Create resources table...")
-	statement, err = db.Prepare(createResourcesTableSQL) // Prepare SQL Statement
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-	statement.Exec() // Execute SQL Statements
-	fmt.Println("resources table created")
+	createTable(db, createResourcesTableSQL)
 
 	// create alias table
 	createAliasTableSQL := `CREATE TABLE IF NOT EXISTS alias (
@@ -81,14 +69,26 @@ func InitDB() *sql.DB {
 		"name" TEXT	
 	  );` // SQL Statement for Create Table
 
-	fmt.Println("Create alias table...")
-	statement, err = db.Prepare(createAliasTableSQL) // Prepare SQL Statement
+	createTable(db, createAliasTableSQL)
+
+	return db
+}
+
+func createTable(db *sql.DB, query string) {
+	log.Println("Creating database table...")
+	log.Printf("Create table query:\n'%s'\n", query)
+
+	statement, err := db.Prepare(query) // Prepare SQL Statement
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	statement.Exec() // Execute SQL Statements
-	fmt.Println("alias table created")
-	return db
+
+	_, err = statement.Exec() // Execute SQL Statements
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
+	log.Println("Table created")
 }
 
 func MakeAdmin(db *sql.DB, username string) {
