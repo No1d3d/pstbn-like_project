@@ -109,7 +109,7 @@ func main() {
 				if database.UserIsAdmin(db, current_user) {
 					target = AskForInput(reader, "Enter a username, whose resource you want to delete: ")
 				}
-				resource_name := AskForInput(reader, "Enter a name of the resource you want to read: ")
+				resource_name := AskForInput(reader, "Enter a name of the resource you want to delete: ")
 				database.DeleteResource(db, current_user, target, resource_name)
 			} else if options[1] == "users" {
 				target := current_user

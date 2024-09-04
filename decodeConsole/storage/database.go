@@ -276,10 +276,6 @@ func InsertAlias(db *sql.DB, id_user int, id_resource int, name string) {
 }
 
 func CreateUser(db *sql.DB, username string, name string) {
-	if !UserIsAdmin(db, username) {
-		fmt.Println("You do not have the rights to create new users")
-		return
-	}
 	if UserExists(db, name) {
 		fmt.Println("This username is occupied.")
 	} else {
@@ -406,9 +402,6 @@ func ShowAlias(db *sql.DB, username string) {
 // region delete
 
 func DeleteResource(db *sql.DB, username string, target string, resource string) {
-	if !UserIsAdmin(db, username) {
-		target = username
-	}
 	log.Println("Deleting resource ", resource)
 	q := `DELETE FROM resources WHERE id_user = ? and name = ?`
 	_, err := db.Exec(q, GetUserId(db, target), resource)
@@ -419,9 +412,6 @@ func DeleteResource(db *sql.DB, username string, target string, resource string)
 }
 
 func DeleteUser(db *sql.DB, username string, target string) string {
-	if !UserIsAdmin(db, username) {
-		target = username
-	}
 	log.Println("Deleting all resources for user ", target)
 	q := `DELETE FROM resources WHERE id_user = ?`
 	_, err := db.Exec(q, GetUserId(db, target))
@@ -445,9 +435,6 @@ func DeleteUser(db *sql.DB, username string, target string) string {
 // region read
 
 func ReadResource(db *sql.DB, username string, target string, resource_name string) {
-	if !UserIsAdmin(db, username) {
-		target = username
-	}
 	var row *sql.Rows
 	var err error
 	q := `SELECT content FROM resources WHERE id_user = ? AND name = ?`
