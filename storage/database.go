@@ -371,34 +371,6 @@ func ShowResources(db *sql.DB, username string) {
 	}
 }
 
-func ShowAlias(db *sql.DB, username string) {
-	var row *sql.Rows
-	var err error
-	var q string
-	if UserIsAdmin(db, username) {
-		q = `SELECT * FROM alias`
-		row, err = db.Query(q)
-	} else {
-		q = `SELECT * FROM alias WHERE id_user = ?`
-		row, err = db.Query(q, GetUserId(db, username))
-	}
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer row.Close()
-	var id_alias int
-	var id_user int
-	var id_resource int
-	var name string
-	fmt.Println("\tid_a | id_u | id_r | name")
-	for row.Next() {
-		if scan_err := row.Scan(&id_alias, &id_user, &id_resource, &name); err != nil {
-			log.Fatal(scan_err)
-		}
-		fmt.Println("\t", id_alias, " | ", id_user, " | ", id_resource, " | ", name)
-	}
-}
-
 // region delete
 
 func DeleteResource(db *sql.DB, username string, target string, resource string) {

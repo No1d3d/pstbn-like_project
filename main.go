@@ -97,7 +97,13 @@ func main() {
 			} else if options[1] == "resources" {
 				database.ShowResources(db, current_user)
 			} else if options[1] == "alias" {
-				database.ShowAlias(db, current_user)
+				aliases := database.GetAliases(db, current_user)
+
+				fmt.Println("\tid_a | id_u | id_r | name")
+				for _, a := range aliases {
+					fmt.Println("\t", a.Id, " | ", a.CreatorId, " | ", a.ResourceId, " | ", a.Name)
+				}
+
 			} else {
 				InpError()
 			}
