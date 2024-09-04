@@ -48,7 +48,7 @@ func InitDB() *sql.DB {
 	createUsersTableSQL := `CREATE TABLE IF NOT EXISTS users (
 		"id_user" integer NOT NULL PRIMARY KEY AUTOINCREMENT,		
 		"name" TEXT UNIQUE,
-		"is_admin" BOOLEAN
+		"is_admin" BOOLEAN DEFAULT FALSE
 	  );` // SQL Statement for Create Table
 	createTable(db, createUsersTableSQL)
 
