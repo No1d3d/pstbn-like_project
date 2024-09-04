@@ -133,13 +133,13 @@ func UserIsAdmin(db *sql.DB, username string) bool {
 // insert new entry in users table
 func InsertUsers(db *sql.DB, name string) {
 	fmt.Println("Inserting users record ...")
-	insertUsersSQL := `INSERT INTO users(name) VALUES (?)`
+	insertUsersSQL := `INSERT INTO users(name, is_admin) VALUES (?, ?)`
 	statement, err := db.Prepare(insertUsersSQL) // Prepare statement.
 	// This is good to avoid SQL injections
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
-	_, err = statement.Exec(name)
+	_, err = statement.Exec(name, false)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
