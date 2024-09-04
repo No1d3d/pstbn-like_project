@@ -131,18 +131,19 @@ func UserIsAdmin(db *sql.DB, username string) bool {
 }
 
 // insert new entry in users table
-func InsertUsers(db *sql.DB, name string) {
+func InsertUser(db *sql.DB, user User) error {
 	fmt.Println("Inserting users record ...")
 	insertUsersSQL := `INSERT INTO users(name, is_admin) VALUES (?, ?)`
 	statement, err := db.Prepare(insertUsersSQL) // Prepare statement.
 	// This is good to avoid SQL injections
 	if err != nil {
-		log.Fatalln(err.Error())
+		return err
 	}
-	_, err = statement.Exec(name, false)
+	_, err = statement.Exec(user.Name, false)
 	if err != nil {
-		log.Fatalln(err.Error())
+		return err
 	}
+	return nil
 }
 
 func AdminCreateNewUser(db *sql.DB, username string) {
@@ -227,7 +228,11 @@ func RegisterUser(db *sql.DB, username string) {
 	if UserExists(db, username) {
 		fmt.Print("\nWelcome back, ", username, "!\n")
 	} else {
-		InsertUsers(db, username)
+		user := User{
+			Name:    username,
+			IsAdmin: false,
+		}
+		InsertUser(db, user)
 		fmt.Print("\nNice to meet you, ", username, "!\n")
 	}
 	fmt.Print("\n\nAuthorisation complete!\n---------------\n\n")
@@ -239,9 +244,9 @@ func CreateResorce(db *sql.DB, username string, name string, content string) {
 	if !CheckIfResourceHasNoDupNames(db, username, name) {
 		return // This name is occupied
 	}
-	fmt.Println("Adding new resource...")
+	log.Println("Adding new resource...")
 	InsertResources(db, GetUserId(db, username), name, content)
-	fmt.Println("New resource added!")
+	log.Println("New resource added!")
 }
 
 func InsertResources(db *sql.DB, id_user int, name string, content string) {
@@ -258,12 +263,20 @@ func InsertResources(db *sql.DB, id_user int, name string, content string) {
 	}
 }
 
-func CreateUser(db *sql.DB, username string, name string) {
+func CreateUser(db *sql.DB, username string, name string) (*User, error) {
 	if UserExists(db, name) {
-		fmt.Println("This username is occupied.")
-	} else {
-		InsertUsers(db, name)
+		return nil, errors.New("This username is occupied")
 	}
+	user := User{
+		Name:    name,
+		IsAdmin: false,
+	}
+	err := InsertUser(db, user)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 // region alias
