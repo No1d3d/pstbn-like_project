@@ -22,6 +22,7 @@ func main() {
 	// routes setup
 	r.GET("/aliases", getAliasesHandler)
 	r.GET("/users", getUsersHandler)
+	r.GET("/resources", getResourcesHandler)
 
 	r.Run(":1488")
 }
@@ -31,4 +32,7 @@ func getAliasesHandler(ctx *gin.Context) {
 }
 func getUsersHandler(ctx *gin.Context) {
 	ctx.JSON(200, storage.GetUsers(db, defaultUsername))
+}
+func getResourcesHandler(ctx *gin.Context) {
+	ctx.JSON(200, storage.GetResources(db, defaultUsername))
 }
