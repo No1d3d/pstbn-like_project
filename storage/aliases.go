@@ -7,6 +7,15 @@ import (
 	m "cdecode/models"
 )
 
+const (
+	createAliasTableSQL = `CREATE TABLE IF NOT EXISTS alias (
+		"id_alias" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
+		"id_user" integer NOT NULL,		
+		"id_resource" integer NOT NULL,		
+		"name" TEXT	
+	  );` // SQL Statement for Create Table
+)
+
 func GetAliases(db *sql.DB, username string) []m.Alias {
 	var row *sql.Rows
 	var err error

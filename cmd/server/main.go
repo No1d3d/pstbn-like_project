@@ -28,11 +28,12 @@ func main() {
 	r.GET("/users", h.GetUsers(db))
 	r.GET("/user/data/:id", h.GetUserById(db))
 	r.GET("/user/data/", h.GetUserData(db))
-	r.POST("/user", h.CreateUser(db))
+	r.POST("/user/new", h.CreateUser(db))
 
 	r.POST("/auth", h.Auth(db))
 
-	r.GET("/resources", getResourcesHandler)
+	r.GET("/resources", h.GetResources(db))
+	r.POST("/resource/create", h.CreateResource(db))
 
 	r.Run(":1488")
 }
@@ -43,6 +44,7 @@ func getAliasesHandler(ctx *gin.Context) {
 func createAlias(ctx *gin.Context) {
 	log.Fatalf("TODO: Implement create alias method")
 }
-func getResourcesHandler(ctx *gin.Context) {
-	ctx.JSON(200, storage.GetResources(db, defaultUsername))
-}
+
+// func getResourcesHandler(ctx *gin.Context) {
+// ctx.JSON(200, storage.GetResources(db, defaultUsername))
+// }

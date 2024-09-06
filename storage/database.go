@@ -36,22 +36,9 @@ func InitDB() *sql.DB {
 	createTable(db, createUsersTableSQL)
 
 	// create resources table
-	createResourcesTableSQL := `CREATE TABLE IF NOT EXISTS resources (
-		"id_resource" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
-		"id_user" integer NOT NULL,		
-		"name" TEXT,
-		"content" TEXT		
-	  );` // SQL Statement for Create Table
 	createTable(db, createResourcesTableSQL)
 
 	// create alias table
-	createAliasTableSQL := `CREATE TABLE IF NOT EXISTS alias (
-		"id_alias" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
-		"id_user" integer NOT NULL,		
-		"id_resource" integer NOT NULL,		
-		"name" TEXT	
-	  );` // SQL Statement for Create Table
-
 	createTable(db, createAliasTableSQL)
 
 	return db
@@ -167,10 +154,10 @@ func GetUserId(db *sql.DB, username string) int {
 }
 
 // check no duplicated name of resource for user
-func CheckIfResourceHasNoDupNames(db *sql.DB, username string, resource_name string) bool {
+func CheckIfResourceHasNoDupNames(db *sql.DB, resourceName string) bool {
 	var count int
-	q := `SELECT COUNT(name) FROM resources WHERE name = ? AND id_user = ?`
-	row := db.QueryRow(q, resource_name, GetUserId(db, username))
+	q := `SELECT COUNT(name) FROM resources WHERE name = ?`
+	row := db.QueryRow(q, resourceName)
 	err := row.Scan(&count)
 	if err != nil {
 		log.Fatal(err)
@@ -224,29 +211,6 @@ func RegisterUser(db *sql.DB, username string) {
 
 // region create
 
-func CreateResource(db *sql.DB, username string, name string, content string) {
-	if !CheckIfResourceHasNoDupNames(db, username, name) {
-		return // This name is occupied
-	}
-	log.Println("Adding new resource...")
-	InsertResources(db, GetUserId(db, username), name, content)
-	log.Println("New resource added!")
-}
-
-func InsertResources(db *sql.DB, id_user int, name string, content string) {
-	fmt.Println("Inserting resources record ...")
-	insertResourcesSQL := `INSERT INTO resources(id_user, name, content) VALUES (?, ?, ?)`
-	statement, err := db.Prepare(insertResourcesSQL) // Prepare statement.
-	// This is good to avoid SQL injections
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-	_, err = statement.Exec(id_user, name, content)
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-}
-
 func CreateUser(db *sql.DB, name string, password string) (*m.User, error) {
 	if UserExists(db, name) {
 		return nil, errors.New("This username is occupied")
@@ -271,7 +235,7 @@ func AliasConnect(db *sql.DB, username string, resource string, alias string) {
 		fmt.Println("There is no such alias...")
 		return
 	}
-	if CheckIfResourceHasNoDupNames(db, username, resource) {
+	if CheckIfResourceHasNoDupNames(db, resource) {
 		fmt.Println("There is no such resource...")
 		return
 	}
@@ -331,32 +295,6 @@ func getResourceFromRow(row *sql.Rows) (*m.Resource, error) {
 	}
 
 	return resource, nil
-}
-
-func GetResources(db *sql.DB, username string) []m.Resource {
-	var row *sql.Rows
-	var err error
-	var q string
-	if UserIsAdmin(db, username) {
-		q = `SELECT * FROM resources`
-		row, err = db.Query(q)
-	} else {
-		q = `SELECT * FROM resources WHERE id_user = ?`
-		row, err = db.Query(q, GetUserId(db, username))
-	}
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer row.Close()
-	resources := []m.Resource{}
-	for row.Next() {
-		resource, scan_err := getResourceFromRow(row)
-		if scan_err != nil {
-			log.Println(scan_err)
-		}
-		resources = append(resources, *resource)
-	}
-	return resources
 }
 
 func ShowResources(db *sql.DB, username string) {
