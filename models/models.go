@@ -33,6 +33,5 @@ func (u *User) ValidatePasssword(password string) bool {
 type Resource struct {
 	Id      ResourceId `json:"id"`
 	UserId  UserId     `json:"userId"`
-	Name    string     `json:"name"`
 	Content string     `json:"value"`
 }

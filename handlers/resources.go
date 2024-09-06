@@ -39,7 +39,7 @@ func CreateResource(db *sql.DB) Handler {
 			return
 		}
 
-		r, err := storage.CreateResource(db, id, data.Name, data.Content)
+		r, err := storage.CreateResource(db, id, data.Content)
 
 		if err != nil {
 			ctx.JSON(http.StatusBadRequest, ResultFromError(err))

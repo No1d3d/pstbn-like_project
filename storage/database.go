@@ -288,15 +288,6 @@ func ShowUsers(db *sql.DB, username string) {
 	}
 }
 
-func getResourceFromRow(row *sql.Rows) (*m.Resource, error) {
-	resource := &m.Resource{}
-	if err := row.Scan(&resource.Id, &resource.UserId, &resource.Name, &resource.Content); err != nil {
-		return nil, err
-	}
-
-	return resource, nil
-}
-
 func ShowResources(db *sql.DB, username string) {
 	var row *sql.Rows
 	var err error

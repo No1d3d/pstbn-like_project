@@ -3,32 +3,24 @@ package storage
 import (
 	"cdecode/models"
 	"database/sql"
-	"errors"
-	"fmt"
 	"log"
 )
 
 const (
 	ResourceIdColumn      = "id_resource"
 	ResourceCreatorColumn = "id_user"
-	ResourceNameColumn    = "name"
 	ResourceContentColumn = "content"
 
 	createResourcesTableSQL = `CREATE TABLE IF NOT EXISTS resources (
 		"` + ResourceIdColumn + `" integer NOT NULL PRIMARY KEY AUTOINCREMENT
 		,"` + ResourceCreatorColumn + `" integer NOT NULL
-		,"` + ResourceNameColumn + `" TEXT UNIQUE
 		,"` + ResourceContentColumn + `" TEXT
 	  );` // SQL Statement for Create Table
 )
 
-func CreateResource(db *sql.DB, creatorId models.UserId, name string, content string) (*models.Resource, error) {
-	if !CheckIfResourceHasNoDupNames(db, name) {
-		return nil, errors.New(fmt.Sprintf("Resource with name '%s' already exist", name))
-	}
+func CreateResource(db *sql.DB, creatorId models.UserId, content string) (*models.Resource, error) {
 	res := &models.Resource{
 		UserId:  creatorId,
-		Name:    name,
 		Content: content,
 	}
 	insertResources(db, res)
@@ -40,14 +32,14 @@ func insertResources(db *sql.DB, r *models.Resource) {
 	log.Println("Inserting resources record ...")
 
 	query := `INSERT INTO resources
-    (` + ResourceCreatorColumn + `, ` + ResourceNameColumn + `, ` + ResourceContentColumn + `) 
-    VALUES (?, ?, ?)`
+    (` + ResourceCreatorColumn + `, ` + ResourceContentColumn + `) 
+    VALUES (?, ?)`
 	statement, err := db.Prepare(query) // Prepare statement.
 	// This is good to avoid SQL injections
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
-	_, err = statement.Exec(r.UserId, r.Name, r.Content)
+	_, err = statement.Exec(r.UserId, r.Content)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
@@ -74,4 +66,13 @@ func GetResources(db *sql.DB, userId models.UserId) []*models.Resource {
 		resources = append(resources, resource)
 	}
 	return resources
+}
+
+func getResourceFromRow(row *sql.Rows) (*models.Resource, error) {
+	resource := &models.Resource{}
+	if err := row.Scan(&resource.Id, &resource.UserId, &resource.Content); err != nil {
+		return nil, err
+	}
+
+	return resource, nil
 }
