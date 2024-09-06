@@ -3,20 +3,11 @@ package storage
 import (
 	"database/sql"
 	"log"
+
+	m "cdecode/models"
 )
 
-type UserId = int
-type AliasId = int
-type ResourceId = int
-
-type Alias struct {
-	Id         AliasId    `json:"id"`
-	CreatorId  UserId     `json:"creatorId"`
-	ResourceId ResourceId `json:"resourceId"`
-	Name       string     `json:"name"`
-}
-
-func GetAliases(db *sql.DB, username string) []Alias {
+func GetAliases(db *sql.DB, username string) []m.Alias {
 	var row *sql.Rows
 	var err error
 	var q string
@@ -31,7 +22,7 @@ func GetAliases(db *sql.DB, username string) []Alias {
 		log.Fatal(err)
 	}
 	defer row.Close()
-	aliases := []Alias{}
+	aliases := []m.Alias{}
 	for row.Next() {
 		alias, scan_err := getAliasFromRow(row)
 		if scan_err != nil {
@@ -43,8 +34,8 @@ func GetAliases(db *sql.DB, username string) []Alias {
 	return aliases
 }
 
-func getAliasFromRow(row *sql.Rows) (*Alias, error) {
-	alias := &Alias{}
+func getAliasFromRow(row *sql.Rows) (*m.Alias, error) {
+	alias := &m.Alias{}
 	if err := row.Scan(&alias.Id, &alias.CreatorId, &alias.ResourceId, &alias.Name); err != nil {
 		return nil, err
 	}
@@ -70,7 +61,7 @@ func CreateAlias(db *sql.DB, username string, resourceName string, alias string)
 		log.Printf("Alias '%s' already exist", alias)
 		return //alias name already exists
 	}
-	newAlias := Alias{
+	newAlias := m.Alias{
 		CreatorId:  GetUserId(db, username),
 		ResourceId: GetResourceId(db, username, resourceName),
 		Name:       alias,
@@ -79,7 +70,7 @@ func CreateAlias(db *sql.DB, username string, resourceName string, alias string)
 }
 
 // Creates new entity in database
-func insertAlias(db *sql.DB, alias Alias) {
+func insertAlias(db *sql.DB, alias m.Alias) {
 	log.Println("Adding new alias...")
 	insertAliasSQL := "INSERT INTO alias(id_user, id_resource, name) VALUES (?, ?, ?)"
 	statement, err := db.Prepare(insertAliasSQL) // Prepare statement.

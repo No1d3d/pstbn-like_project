@@ -1,7 +1,8 @@
 package handlers
 
 import (
-	"cdecode/storage"
+	m "cdecode/models"
+	s "cdecode/storage"
 	"database/sql"
 	"log"
 	"strconv"
@@ -12,19 +13,18 @@ import (
 type Handler = func(*gin.Context)
 
 const defaultUsername = "admin"
-const passwordPlaceholder = "****"
 
 func GetUsers(db *sql.DB) Handler {
 	return func(ctx *gin.Context) {
-		users := storage.GetUsers(db)
+		users := s.GetUsers(db)
 		users = hidePasswords(users)
 		ctx.JSON(200, users)
 	}
 }
 
-func hidePasswords(users []*storage.User) []*storage.User {
+func hidePasswords(users []*m.User) []*m.User {
 	for _, u := range users {
-		u.Password = passwordPlaceholder
+		u.HidePassword()
 	}
 	return users
 }
@@ -53,7 +53,7 @@ func CreateUser(db *sql.DB) Handler {
 			return
 		}
 
-		user, err := storage.CreateUser(db, command.Name, command.Password)
+		user, err := s.CreateUser(db, command.Name, command.Password)
 		if err != nil {
 			ctx.JSON(400, ResultFromError(err))
 			return
@@ -79,7 +79,7 @@ func GetUser(db *sql.DB) Handler {
 			ctx.JSON(400, ResultFromError(err))
 			return
 		}
-		user, err := storage.GetUserById(db, id)
+		user, err := s.GetUserById(db, id)
 		if err != nil {
 			ctx.JSON(400, ResultFromError(err))
 			return

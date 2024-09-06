@@ -1,6 +1,7 @@
 package storage
 
 import (
+	m "cdecode/models"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -9,28 +10,6 @@ import (
 
 	_ "github.com/mattn/go-sqlite3" // Import go-sqlite3 library
 )
-
-type User struct {
-	Id       UserId `json:"id"`
-	Name     string `json:"name"`
-	Password string `json:"password"`
-	IsAdmin  bool   `json:"isAdmin"`
-}
-
-const (
-	HiddenPassword = "****"
-)
-
-func (u *User) HidePassword() {
-	u.Password = HiddenPassword
-}
-
-type Resource struct {
-	Id      ResourceId `json:"id"`
-	UserId  UserId     `json:"userId"`
-	Name    string     `json:"name"`
-	Content string     `json:"value"`
-}
 
 func CheckFileExists(filePath string) bool {
 	_, error := os.Stat(filePath)
@@ -141,7 +120,7 @@ func UserIsAdmin(db *sql.DB, username string) bool {
 }
 
 // insert new entry in users table
-func InsertUser(db *sql.DB, user User) error {
+func InsertUser(db *sql.DB, user m.User) error {
 	fmt.Println("Inserting user record...")
 	insertUsersSQL := `INSERT INTO users(name, password, is_admin) VALUES (?, ?, ?)`
 	statement, err := db.Prepare(insertUsersSQL) // Prepare statement.
@@ -238,7 +217,7 @@ func RegisterUser(db *sql.DB, username string) {
 	if UserExists(db, username) {
 		fmt.Print("\nWelcome back, ", username, "!\n")
 	} else {
-		user := User{
+		user := m.User{
 			Name:    username,
 			IsAdmin: false,
 		}
@@ -274,11 +253,11 @@ func InsertResources(db *sql.DB, id_user int, name string, content string) {
 	}
 }
 
-func CreateUser(db *sql.DB, name string, password string) (*User, error) {
+func CreateUser(db *sql.DB, name string, password string) (*m.User, error) {
 	if UserExists(db, name) {
 		return nil, errors.New("This username is occupied")
 	}
-	user := User{
+	user := m.User{
 		Name:     name,
 		Password: password,
 		IsAdmin:  false,
@@ -325,54 +304,6 @@ func AliasDisconnect(db *sql.DB, username string, alias string) {
 
 // region show
 
-func getUserFromRow(row *sql.Rows) (*User, error) {
-	user := &User{}
-	if err := row.Scan(&user.Id, &user.Name, &user.Password, &user.IsAdmin); err != nil {
-		return nil, err
-	}
-
-	return user, nil
-}
-
-func GetUsers(db *sql.DB) []*User {
-	q := `SELECT * FROM users`
-	row, err := db.Query(q)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer row.Close()
-	users := []*User{}
-	for row.Next() {
-		user, err := getUserFromRow(row)
-		if err != nil {
-			log.Println(err)
-		}
-		users = append(users, user)
-	}
-	return users
-}
-
-func GetUserById(db *sql.DB, id int) (*User, error) {
-	query := "SELECT * FROM users WHERE id_user = ?"
-	stmt, err := db.Prepare(query)
-
-	if err != nil {
-		return nil, err
-	}
-
-	row, err := stmt.Query(id)
-
-	if err != nil {
-		return nil, err
-	}
-
-	for row.Next() {
-		user, err := getUserFromRow(row)
-		return user, err
-	}
-	return nil, errors.New(fmt.Sprintf("No such user with id %d", id))
-}
-
 func ShowUsers(db *sql.DB, username string) {
 	var row *sql.Rows
 	var err error
@@ -399,8 +330,8 @@ func ShowUsers(db *sql.DB, username string) {
 	}
 }
 
-func getResourceFromRow(row *sql.Rows) (*Resource, error) {
-	resource := &Resource{}
+func getResourceFromRow(row *sql.Rows) (*m.Resource, error) {
+	resource := &m.Resource{}
 	if err := row.Scan(&resource.Id, &resource.UserId, &resource.Name, &resource.Content); err != nil {
 		return nil, err
 	}
@@ -408,7 +339,7 @@ func getResourceFromRow(row *sql.Rows) (*Resource, error) {
 	return resource, nil
 }
 
-func GetResources(db *sql.DB, username string) []Resource {
+func GetResources(db *sql.DB, username string) []m.Resource {
 	var row *sql.Rows
 	var err error
 	var q string
@@ -423,7 +354,7 @@ func GetResources(db *sql.DB, username string) []Resource {
 		log.Fatal(err)
 	}
 	defer row.Close()
-	resources := []Resource{}
+	resources := []m.Resource{}
 	for row.Next() {
 		resource, scan_err := getResourceFromRow(row)
 		if scan_err != nil {
@@ -495,16 +426,16 @@ func DeleteUser(db *sql.DB, username *string, target string, new_username string
 
 // region read
 
-func ReadContentByResource(db *sql.DB, username string, resource_name string) string {
+func ReadContentByResource(db *sql.DB, username string, resourceName string) string {
 	var row *sql.Rows
 	q := `SELECT content FROM resources WHERE id_user = ? AND name = ?`
-	row, err := db.Query(q, GetUserId(db, username), resource_name)
+	row, err := db.Query(q, GetUserId(db, username), resourceName)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer row.Close()
 	if !row.Next() {
-		log.Printf("No resource was found with name '%s'", resource_name)
+		log.Printf("No resource was found with name '%s'", resourceName)
 		return ""
 	}
 	var content string
@@ -516,7 +447,7 @@ func ReadContentByResource(db *sql.DB, username string, resource_name string) st
 	return content
 }
 
-func ReadResource(db *sql.DB, target string, resource_name string) ([]Resource, int) {
+func ReadResource(db *sql.DB, target string, resource_name string) ([]m.Resource, int) {
 	var row *sql.Rows
 	var err error
 	counter := 0
@@ -526,7 +457,7 @@ func ReadResource(db *sql.DB, target string, resource_name string) ([]Resource, 
 		log.Fatal(err)
 	}
 	defer row.Close()
-	resources := []Resource{}
+	resources := []m.Resource{}
 	for row.Next() {
 		resource, scan_err := getResourceFromRow(row)
 		if scan_err != nil {
