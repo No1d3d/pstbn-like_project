@@ -5,6 +5,7 @@ import (
 	s "cdecode/storage"
 	"database/sql"
 	"log"
+	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -55,23 +56,15 @@ func CreateUser(db *sql.DB) Handler {
 
 		user, err := s.CreateUser(db, command.Name, command.Password)
 		if err != nil {
-			ctx.JSON(400, ResultFromError(err))
+			ctx.JSON(http.StatusBadRequest, ResultFromError(err))
 			return
 		}
 		ctx.JSON(200, user)
 	}
 }
 
-type getUserData struct {
-	Id int `url:"id"`
-}
-
-func GetUser(db *sql.DB) Handler {
+func GetUserById(db *sql.DB) Handler {
 	return func(ctx *gin.Context) {
-
-		var data getUserData
-
-		ctx.BindUri(data)
 
 		id, err := strconv.Atoi(ctx.Param("id"))
 
@@ -85,6 +78,31 @@ func GetUser(db *sql.DB) Handler {
 			return
 		}
 		user.HidePassword()
+		ctx.JSON(200, user)
+	}
+}
+
+func GetUserData(db *sql.DB) Handler {
+	return func(ctx *gin.Context) {
+
+		if !isAuthenticated(ctx) {
+			ctx.JSON(http.StatusBadRequest, BadResult("Not authorized"))
+			return
+		}
+
+		id, err := getAuthenticatedUserId(ctx)
+
+		if err != nil || id <= 0 {
+			ctx.JSON(http.StatusInternalServerError, BadResult("Something wrong with cookie"))
+			return
+		}
+
+		user, err := s.GetUserById(db, id)
+		if err != nil {
+			ctx.JSON(400, ResultFromError(err))
+			return
+		}
+		// user.HidePassword()
 		ctx.JSON(200, user)
 	}
 }

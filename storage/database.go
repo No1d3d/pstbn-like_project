@@ -33,12 +33,6 @@ func InitDB() *sql.DB {
 	db, _ := sql.Open("sqlite3", DbFile)
 
 	// create users table
-	createUsersTableSQL := `CREATE TABLE IF NOT EXISTS users (
-		"id_user" integer NOT NULL PRIMARY KEY AUTOINCREMENT,		
-		"name" TEXT UNIQUE NOT NULL,
-    "password" TEXT NOT NULL,
-		"is_admin" BOOLEAN DEFAULT FALSE
-	  );` // SQL Statement for Create Table
 	createTable(db, createUsersTableSQL)
 
 	// create resources table

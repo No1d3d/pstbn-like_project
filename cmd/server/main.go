@@ -24,9 +24,14 @@ func main() {
 	// routes setup
 	r.GET("/aliases", getAliasesHandler)
 	r.POST("/alias", createAlias)
+
 	r.GET("/users", h.GetUsers(db))
-	r.GET("/user/:id", h.GetUser(db))
+	r.GET("/user/data/:id", h.GetUserById(db))
+	r.GET("/user/data/", h.GetUserData(db))
 	r.POST("/user", h.CreateUser(db))
+
+	r.POST("/auth", h.Auth(db))
+
 	r.GET("/resources", getResourcesHandler)
 
 	r.Run(":1488")
