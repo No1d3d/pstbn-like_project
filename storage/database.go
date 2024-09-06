@@ -11,16 +11,16 @@ import (
 )
 
 type User struct {
-	Id      UserId
-	Name    string
-	IsAdmin bool
+	Id      UserId `json:"id"`
+	Name    string `json:"name"`
+	IsAdmin bool   `json:"isAdmin"`
 }
 
 type Resource struct {
-	Id      ResourceId
-	User    UserId
-	Name    string
-	Content string
+	Id      ResourceId `json:"id"`
+	UserId  UserId     `json:"userId"`
+	Name    string     `json:"name"`
+	Content string     `json:"value"`
 }
 
 func CheckFileExists(filePath string) bool {
@@ -376,7 +376,7 @@ func ShowUsers(db *sql.DB, username string) {
 
 func getResourceFromRow(row *sql.Rows) (*Resource, error) {
 	resource := &Resource{}
-	if err := row.Scan(&resource.Id, &resource.User, &resource.Name, &resource.Content); err != nil {
+	if err := row.Scan(&resource.Id, &resource.UserId, &resource.Name, &resource.Content); err != nil {
 		return nil, err
 	}
 

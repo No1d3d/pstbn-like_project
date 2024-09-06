@@ -19,7 +19,7 @@ func GetUsers(db *sql.DB) Handler {
 }
 
 type createUserCommand struct {
-	Username string `json:"username"`
+	Name string `json:"name"`
 }
 
 func CreateUser(db *sql.DB) Handler {
@@ -28,15 +28,15 @@ func CreateUser(db *sql.DB) Handler {
 		var command createUserCommand
 
 		ctx.ShouldBindJSON(&command)
-		log.Printf("New user username: '%s'", command.Username)
+		log.Printf("New user username: '%s'", command.Name)
 
-		if command.Username == "" {
+		if command.Name == "" {
 			log.Printf("Empty username")
 			ctx.JSON(400, "Empty username")
 			return
 		}
 
-		user, err := storage.CreateUser(db, defaultUsername, command.Username)
+		user, err := storage.CreateUser(db, defaultUsername, command.Name)
 		if err != nil {
 			ctx.JSON(400, err.Error())
 			return

@@ -105,7 +105,7 @@ func main() {
 
 				fmt.Println("\tid_r | id_u | name | content")
 				for _, r := range resources {
-					fmt.Println("\t", r.Id, " | ", r.User, " | ", r.Name, " | ", r.Content)
+					fmt.Println("\t", r.Id, " | ", r.UserId, " | ", r.Name, " | ", r.Content)
 				}
 
 			} else if options[1] == "alias" {

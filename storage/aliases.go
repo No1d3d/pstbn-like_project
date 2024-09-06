@@ -10,10 +10,10 @@ type AliasId = int
 type ResourceId = int
 
 type Alias struct {
-	Id         AliasId
-	CreatorId  UserId
-	ResourceId ResourceId
-	Name       string
+	Id         AliasId    `json:"id"`
+	CreatorId  UserId     `json:"creatorId"`
+	ResourceId ResourceId `json:"resourceId"`
+	Name       string     `json:"name"`
 }
 
 func GetAliases(db *sql.DB, username string) []Alias {
