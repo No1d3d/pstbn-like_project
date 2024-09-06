@@ -61,7 +61,7 @@ func main() {
 			} else if options[1] == "resource" {
 				content := AskForInput(reader, "Enter content for your desired resource: ")
 				name := AskForInput(reader, "Enter a name for this resource: ")
-				database.CreateResorce(db, current_user, name, content)
+				database.CreateResource(db, current_user, name, content)
 			} else if options[1] == "alias" {
 				resource_name := AskForInput(reader, "Enter the name of the resource you want to create an alias for: ")
 				alias := AskForInput(reader, "Enter an alias for this resource: ")
