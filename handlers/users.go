@@ -4,6 +4,7 @@ import (
 	"cdecode/storage"
 	"database/sql"
 	"log"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -11,6 +12,7 @@ import (
 type Handler = func(*gin.Context)
 
 const defaultUsername = "admin"
+const passwordPlaceholder = "****"
 
 func GetUsers(db *sql.DB) Handler {
 	return func(ctx *gin.Context) {
@@ -22,7 +24,7 @@ func GetUsers(db *sql.DB) Handler {
 
 func hidePasswords(users []*storage.User) []*storage.User {
 	for _, u := range users {
-		u.Password = "****"
+		u.Password = passwordPlaceholder
 	}
 	return users
 }
@@ -42,20 +44,47 @@ func CreateUser(db *sql.DB) Handler {
 
 		if command.Name == "" {
 			log.Printf("Empty username")
-			ctx.JSON(400, "Empty username")
+			ctx.JSON(400, BadResult("Empty username"))
 			return
 		}
 		if command.Password == "" {
 			log.Printf("Empty password")
-			ctx.JSON(400, "Empty password")
+			ctx.JSON(400, BadResult("Empty password"))
 			return
 		}
 
 		user, err := storage.CreateUser(db, command.Name, command.Password)
 		if err != nil {
-			ctx.JSON(400, err.Error())
+			ctx.JSON(400, ResultFromError(err))
 			return
 		}
+		ctx.JSON(200, user)
+	}
+}
+
+type getUserData struct {
+	Id int `url:"id"`
+}
+
+func GetUser(db *sql.DB) Handler {
+	return func(ctx *gin.Context) {
+
+		var data getUserData
+
+		ctx.BindUri(data)
+
+		id, err := strconv.Atoi(ctx.Param("id"))
+
+		if err != nil {
+			ctx.JSON(400, ResultFromError(err))
+			return
+		}
+		user, err := storage.GetUserById(db, id)
+		if err != nil {
+			ctx.JSON(400, ResultFromError(err))
+			return
+		}
+		user.HidePassword()
 		ctx.JSON(200, user)
 	}
 }

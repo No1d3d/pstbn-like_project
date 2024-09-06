@@ -25,6 +25,7 @@ func main() {
 	r.GET("/aliases", getAliasesHandler)
 	r.POST("/alias", createAlias)
 	r.GET("/users", h.GetUsers(db))
+	r.GET("/user/:id", h.GetUser(db))
 	r.POST("/user", h.CreateUser(db))
 	r.GET("/resources", getResourcesHandler)
 

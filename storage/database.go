@@ -17,6 +17,14 @@ type User struct {
 	IsAdmin  bool   `json:"isAdmin"`
 }
 
+const (
+	HiddenPassword = "****"
+)
+
+func (u *User) HidePassword() {
+	u.Password = HiddenPassword
+}
+
 type Resource struct {
 	Id      ResourceId `json:"id"`
 	UserId  UserId     `json:"userId"`
@@ -342,6 +350,27 @@ func GetUsers(db *sql.DB) []*User {
 		users = append(users, user)
 	}
 	return users
+}
+
+func GetUserById(db *sql.DB, id int) (*User, error) {
+	query := "SELECT * FROM users WHERE id_user = ?"
+	stmt, err := db.Prepare(query)
+
+	if err != nil {
+		return nil, err
+	}
+
+	row, err := stmt.Query(id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for row.Next() {
+		user, err := getUserFromRow(row)
+		return user, err
+	}
+	return nil, errors.New(fmt.Sprintf("No such user with id %d", id))
 }
 
 func ShowUsers(db *sql.DB, username string) {
