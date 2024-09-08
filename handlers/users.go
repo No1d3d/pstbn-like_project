@@ -85,19 +85,13 @@ func GetUserById(db *sql.DB) Handler {
 func GetUserData(db *sql.DB) Handler {
 	return func(ctx *gin.Context) {
 
-		if !isAuthenticated(ctx) {
+		authState := getAuthState(ctx)
+		if !authState.IsAuthenticated() {
 			ctx.JSON(http.StatusBadRequest, BadResult("Not authorized"))
 			return
 		}
 
-		id, err := getAuthenticatedUserId(ctx)
-
-		if err != nil || id <= 0 {
-			ctx.JSON(http.StatusInternalServerError, BadResult("Something wrong with cookie"))
-			return
-		}
-
-		user, err := s.GetUserById(db, id)
+		user, err := s.GetUserById(db, authState.Claims.UserId())
 		if err != nil {
 			ctx.JSON(400, ResultFromError(err))
 			return

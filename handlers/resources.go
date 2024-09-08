@@ -21,14 +21,9 @@ func CreateResource(db *sql.DB) Handler {
 	return func(ctx *gin.Context) {
 		var data createResourceData
 
-		if !isAuthenticated(ctx) {
-			ctx.JSON(http.StatusUnauthorized, BadResult("Not authenticated"))
-			return
-		}
+		auth := getAuthState(ctx)
 
-		id, err := getAuthenticatedUserId(ctx)
-
-		if err != nil {
+		if !auth.IsAuthenticated() {
 			ctx.JSON(http.StatusUnauthorized, BadResult("Not authenticated"))
 			return
 		}
@@ -39,7 +34,7 @@ func CreateResource(db *sql.DB) Handler {
 			return
 		}
 
-		r, err := storage.CreateResource(db, id, data.Content)
+		r, err := storage.CreateResource(db, auth.Claims.UserId(), data.Content)
 
 		if err != nil {
 			ctx.JSON(http.StatusBadRequest, ResultFromError(err))
@@ -53,12 +48,12 @@ func CreateResource(db *sql.DB) Handler {
 func GetResources(db *sql.DB) Handler {
 	return func(ctx *gin.Context) {
 
-		if !isAuthenticated(ctx) {
+		auth := getAuthState(ctx)
+		if !auth.IsAuthenticated() {
 			ctx.JSON(http.StatusUnauthorized, "")
 			return
 		}
-		id, _ := getAuthenticatedUserId(ctx)
-		res := storage.GetResources(db, id)
+		res := storage.GetResources(db, auth.Claims.UserId())
 
 		ctx.JSON(200, res)
 	}

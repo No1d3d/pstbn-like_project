@@ -1,4 +1,5 @@
 @host=http://localhost:1488
+@token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MjU5MDI5MjYsImp0aSI6IjEiLCJpYXQiOjE3MjU4MTY1MjZ9.33O3hUSpfg6lwACpWLkGTUA2p28dy0KOTjraaVrvvh8
 
 ###
 
@@ -36,12 +37,12 @@ GET  {{host}}/resource
 ###
 
 # Create resource
-POST {{host}}/resource
+POST {{host}}/resource/create
+Authorization: Bearer {{token}}
 
 {
-  "userId": "user_id",
-  "resourceName": "name",
-  "resourceContent": "lorem ipsum"
+  "name": "name",
+  "content": "lorem ipsum"
 }
 
 ###
@@ -71,11 +72,17 @@ GET {{host}}/users
 ###
 
 # Create new user
-POST {{host}}/user
+POST {{host}}/user/new
 
 {
-  "username": "Katy248"
+  "name": "Katy248",
+  "password": "pass"
 }
+
+###
+
+GET {{host}}/user/data
+Authorization: Bearer {{token}}
 
 ###
 
@@ -94,4 +101,14 @@ DELETE {{host}}/user
 
 {
   "id": "user id"
+}
+
+
+###
+
+POST {{host}}/auth
+
+{
+  "name": "Katy248",
+  "password": "pass"
 }

@@ -16,10 +16,12 @@ var db *sql.DB
 func main() {
 	// db setup
 	db = storage.InitDB()
+
 	defer db.Close()
 
 	// server setup
 	r := gin.Default()
+	log.SetOutput(gin.DefaultErrorWriter)
 
 	// routes setup
 	r.GET("/aliases", getAliasesHandler)
@@ -44,7 +46,3 @@ func getAliasesHandler(ctx *gin.Context) {
 func createAlias(ctx *gin.Context) {
 	log.Fatalf("TODO: Implement create alias method")
 }
-
-// func getResourcesHandler(ctx *gin.Context) {
-// ctx.JSON(200, storage.GetResources(db, defaultUsername))
-// }
