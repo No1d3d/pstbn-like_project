@@ -14,7 +14,7 @@ const (
 	// AuthCookieName = "OurCoolAuthCookie"
 	// CookiePath     = "/"
 	// CookieDomain   = "localhost"
-	AuthHeader = "Auth"
+	AuthHeader = "Authentication"
 )
 
 func Auth(db *sql.DB) Handler {
