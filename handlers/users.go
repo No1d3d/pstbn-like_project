@@ -5,7 +5,6 @@ import (
 	s "cdecode/storage"
 	"database/sql"
 	"log"
-	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -35,6 +34,7 @@ type createUserCommand struct {
 	Password string `json:"password"`
 }
 
+// Registration endpoint
 func CreateUser(db *sql.DB) Handler {
 	return func(ctx *gin.Context) {
 
@@ -44,37 +44,36 @@ func CreateUser(db *sql.DB) Handler {
 		log.Printf("New user username: '%s'", command.Name)
 
 		if command.Name == "" {
-			log.Printf("Empty username")
-			ctx.JSON(400, BadResult("Empty username"))
+			BadRequest(ctx, "Empty username")
 			return
 		}
 		if command.Password == "" {
 			log.Printf("Empty password")
-			ctx.JSON(400, BadResult("Empty password"))
+			BadRequest(ctx, "Empty password")
 			return
 		}
 
 		user, err := s.CreateUser(db, command.Name, command.Password)
 		if err != nil {
-			ctx.JSON(http.StatusBadRequest, ResultFromError(err))
+			ResultFromError(ctx, err)
 			return
 		}
 		ctx.JSON(200, user)
 	}
 }
 
-func GetUserById(db *sql.DB) Handler {
+func GetUserDataById(db *sql.DB) Handler {
 	return func(ctx *gin.Context) {
 
 		id, err := strconv.Atoi(ctx.Param("id"))
 
 		if err != nil {
-			ctx.JSON(400, ResultFromError(err))
+			ResultFromError(ctx, err)
 			return
 		}
 		user, err := s.GetUserById(db, id)
 		if err != nil {
-			ctx.JSON(400, ResultFromError(err))
+			ResultFromError(ctx, err)
 			return
 		}
 		user.HidePassword()
@@ -87,7 +86,7 @@ func GetUserData(db *sql.DB) Handler {
 
 		user, err := s.GetUserById(db, auth.Claims.UserId())
 		if err != nil {
-			ctx.JSON(400, ResultFromError(err))
+			ResultFromError(ctx, err)
 			return
 		}
 		// user.HidePassword()

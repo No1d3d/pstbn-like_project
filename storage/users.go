@@ -60,6 +60,7 @@ func GetUserById(db *sql.DB, id int) (*m.User, error) {
 
 	for row.Next() {
 		user, err := getUserFromRow(row)
+		row.Close()
 		return user, err
 	}
 	return nil, errors.New(fmt.Sprintf("No such user with id %d", id))

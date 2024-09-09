@@ -3,7 +3,8 @@ package handlers
 import (
 	"cdecode/storage"
 	"database/sql"
-	"net/http"
+	"log"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -21,14 +22,14 @@ func CreateResource(db *sql.DB) Handler {
 		var data createResourceData
 		ctx.BindJSON(&data)
 		if !data.Validate() {
-			ctx.JSON(http.StatusBadRequest, BadResult("Validation error"))
+			BadRequest(ctx, "Validation error")
 			return
 		}
 
 		r, err := storage.CreateResource(db, auth.Claims.UserId(), data.Content)
 
 		if err != nil {
-			ctx.JSON(http.StatusBadRequest, ResultFromError(err))
+			InternalError(ctx)
 			return
 		}
 
@@ -40,5 +41,28 @@ func GetResources(db *sql.DB) Handler {
 	return authenticated(func(ctx *gin.Context, auth *AuthState) {
 		res := storage.GetResources(db, auth.Claims.UserId())
 		ctx.JSON(200, res)
+	})
+}
+
+func DeleteResource(db *sql.DB) Handler {
+	return authenticated(func(ctx *gin.Context, as *AuthState) {
+		id, _ := strconv.Atoi(ctx.Param("id"))
+
+		res, err := storage.GetResourceById(db, id)
+		if err != nil {
+			log.Println(err)
+			NotFound(ctx)
+			return
+		}
+
+		log.Println("Resource found")
+
+		err = storage.DeleteResource(db, res.Id)
+		if err != nil {
+			log.Println(err)
+			ResultFromError(ctx, err)
+			return
+		}
+		Success(ctx)
 	})
 }

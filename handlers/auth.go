@@ -30,26 +30,20 @@ func Authenticate(db *sql.DB) Handler {
 		var data AuthData
 		ctx.BindJSON(&data)
 
-		notAuthResponse := BadResult("Wrong password or username")
-
 		user, err := s.GetUserByName(db, data.Name)
 		if err != nil {
-			ctx.JSON(400, notAuthResponse)
-			log.Println(err)
+			LoginError(ctx)
 			return
 		}
 
 		if !user.ValidatePasssword(data.Password) {
-			ctx.JSON(400, notAuthResponse)
-			log.Println("Not valid password")
+			LoginError(ctx)
 			return
 		}
 
 		token, err := createToken(user)
 		if err != nil {
-			ctx.JSON(400, notAuthResponse)
-			log.Println(err)
-			log.Println("Something wrong with token")
+			LoginError(ctx)
 			return
 		}
 		// TODO: add more complex logic for hashing and storing other neccessaru data in cookies

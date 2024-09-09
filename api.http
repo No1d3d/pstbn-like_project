@@ -1,5 +1,5 @@
 @host=http://localhost:1488
-@token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MjU5NTIzNDcsImp0aSI6IjIiLCJpYXQiOjE3MjU4NjU5NDd9.7fahdusdclvDje5A1YCaewB_vzE5CWwZ_plu1HPSagA
+@token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MjU5NjA2ODMsImp0aSI6IjEiLCJpYXQiOjE3MjU4NzQyODN9.-CGcU6Dhx2YqjiU4eVfmyjbMrdHI6y-Ny5lmOoOQ8Rc
 
 ###
 
@@ -18,15 +18,11 @@ POST {{host}}/alias
 
 ###
 
-DELETE {{host}}/alias
-
-{
-  "id": "12"
-}
+DELETE {{host}}/alias/id
 
 ###
 
-# Get specified resource
+# Get user resources
 GET  {{host}}/resource
 Authorization: Bearer {{token}}
 
@@ -43,12 +39,8 @@ Authorization: Bearer {{token}}
 ###
 
 # Delete specified resource
-DELETE {{host}}/resource
-
-{
-  "id": "id",
-  "userId": "user_id"
-}
+DELETE {{host}}/resource/delete/3
+Authorization: Bearer {{token}}
 
 ###
 
@@ -82,7 +74,7 @@ Authorization: Bearer {{token}}
 ###
 
 # Update user data
-POST {{host}}/user/update
+POST {{host}}/user/change/name
 
 {
   "id": "userId",
