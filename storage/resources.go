@@ -3,6 +3,8 @@ package storage
 import (
 	"cdecode/models"
 	"database/sql"
+	"errors"
+	"fmt"
 	"log"
 )
 
@@ -75,4 +77,31 @@ func getResourceFromRow(row *sql.Rows) (*models.Resource, error) {
 	}
 
 	return resource, nil
+}
+func GetResourceById(db *sql.DB, id models.ResourceId) (*models.Resource, error) {
+	query := "SELECT * FROM resources WHERE " + ResourceIdColumn + " = ?"
+	stmt, err := db.Prepare(query)
+
+	if err != nil {
+		return nil, err
+	}
+
+	row, err := stmt.Query(id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for row.Next() {
+		res, err := getResourceFromRow(row)
+		row.Close()
+		return res, err
+	}
+	return nil, errors.New(fmt.Sprintf("No such resource with id %d", id))
+}
+
+func DeleteResource(db *sql.DB, id models.ResourceId) error {
+	q := `DELETE FROM resources WHERE ` + ResourceIdColumn + ` = ?`
+	_, err := db.Exec(q, id)
+	return err
 }

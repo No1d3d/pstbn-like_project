@@ -318,16 +318,6 @@ func ShowResources(db *sql.DB, username string) {
 
 // region delete
 
-func DeleteResource(db *sql.DB, username string, target string, resource string) {
-	log.Println("Deleting resource ", resource)
-	q := `DELETE FROM resources WHERE id_user = ? and name = ?`
-	_, err := db.Exec(q, GetUserId(db, target), resource)
-	if err != nil {
-		panic(err)
-	}
-
-}
-
 func DeleteUser(db *sql.DB, username *string, target string, new_username string) {
 	log.Println("Deleting all resources for user ", target)
 	q := `DELETE FROM resources WHERE id_user = ?`
