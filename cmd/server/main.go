@@ -51,6 +51,8 @@ func main() {
 
 	r.POST("/auth", h.Authenticate(db))
 
+	r.GET("/read/:name", h.Read(db))
+
 	r.Run(":1488")
 }
 

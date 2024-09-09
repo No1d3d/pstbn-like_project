@@ -57,17 +57,8 @@ Authorization: Bearer {{token}}
 
 ###
 
-# Get user id based on username
-POST {{host}}/auth
-
-{
-  "username": "user1"
-}
-
-###
-
 # Get users
-GET {{host}}/users
+GET {{host}}/user/
 
 ###
 
@@ -96,19 +87,13 @@ POST {{host}}/user/change/name
 
 ###
 
-# Delete user by id
-DELETE {{host}}/user
-
-{
-  "id": "user id"
-}
-
-
-###
-
 POST {{host}}/auth
 
 {
   "name": "Katy248",
   "password": "pass"
 }
+
+###
+
+GET {{host}}/read/new2

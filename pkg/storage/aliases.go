@@ -117,6 +117,28 @@ func GetAliasById(db *sql.DB, id m.AliasId) (*m.Alias, error) {
 	}
 	return nil, errors.New(fmt.Sprintf("No such alias with id %d", id))
 }
+
+func GetAliasByName(db *sql.DB, name string) (*m.Alias, error) {
+	query := "SELECT * FROM alias WHERE " + AliasNameColumn + " = ?"
+	stmt, err := db.Prepare(query)
+
+	if err != nil {
+		return nil, err
+	}
+
+	row, err := stmt.Query(name)
+
+	if err != nil {
+		return nil, err
+	}
+	defer row.Close()
+	for row.Next() {
+		alias, err := getAliasFromRow(row)
+		return alias, err
+	}
+	return nil, errors.New(fmt.Sprintf("No such alias with name '%s'", name))
+}
+
 func ReadContentByAlias(db *sql.DB, alias string) string {
 	var row *sql.Rows
 	q := `SELECT content FROM resources WHERE id_resource = (SELECT id_resource FROM alias WHERE name = ?)`
