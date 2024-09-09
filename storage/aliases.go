@@ -8,9 +8,10 @@ import (
 )
 
 const (
-	AliasIdColumn      = "id_alias"
-	AliasCreatorColumn = "id_user"
-	AliasNameColumn    = "name"
+	AliasIdColumn       = "id_alias"
+	AliasCreatorColumn  = "id_user"
+	AliasNameColumn     = "name"
+	AliasResourceColumn = "id_resource"
 
 	createAliasTableSQL = `CREATE TABLE IF NOT EXISTS alias (
 		"id_alias" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -66,28 +67,29 @@ func checkIfAliasHasNoDupes(db *sql.DB, alias string) bool {
 }
 
 // new create and insert aliases
-func CreateAlias(db *sql.DB, creatorId m.UserId, name string) (*m.Alias, error) {
-	res := &m.Alias{
-		CreatorId: creatorId,
-		Name:      name,
+func CreateAlias(db *sql.DB, creatorId m.UserId, name string, resourceId m.ResourceId) (*m.Alias, error) {
+	alias := &m.Alias{
+		CreatorId:  creatorId,
+		Name:       name,
+		ResourceId: resourceId,
 	}
-	insertAlias(db, res)
+	insertAlias(db, alias)
 
-	return res, nil
+	return alias, nil
 }
 
 func insertAlias(db *sql.DB, a *m.Alias) {
 	log.Println("Inserting resources record ...")
 
 	query := `INSERT INTO alias
-    (` + AliasCreatorColumn + `, ` + AliasNameColumn + `) 
-    VALUES (?, ?)`
+    (` + AliasCreatorColumn + `, ` + AliasNameColumn + ", " + AliasResourceColumn + `) 
+    VALUES (?, ?, ?)`
 	statement, err := db.Prepare(query) // Prepare statement.
 	// This is good to avoid SQL injections
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
-	_, err = statement.Exec(a.CreatorId, a.Name)
+	_, err = statement.Exec(a.CreatorId, a.Name, a.ResourceId)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}

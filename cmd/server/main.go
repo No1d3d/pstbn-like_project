@@ -1,7 +1,6 @@
 package main
 
 import (
-	"cdecode/handlers"
 	h "cdecode/handlers"
 	"cdecode/storage"
 	"database/sql"
@@ -27,8 +26,8 @@ func main() {
 	// routes setup
 	aliases := r.Group("/alias")
 	{
-		aliases.GET("/", getAliasesHandler)
-		aliases.POST("/new", createAlias)
+		aliases.GET("/", h.GetAliases(db))
+		aliases.POST("/new", h.CreateAliases(db))
 	}
 	users := r.Group("/user")
 	{
@@ -51,13 +50,6 @@ func main() {
 	}
 
 	r.Run(":1488")
-}
-
-func getAliasesHandler(ctx *gin.Context) {
-	ctx.JSON(200, handlers.GetAliases(db))
-}
-func createAlias(ctx *gin.Context) {
-	log.Fatalf("TODO: Implement create alias method")
 }
 
 func dummyHandler(ctx *gin.Context) {

@@ -1,19 +1,20 @@
 package handlers
 
 import (
+	m "cdecode/models"
 	"cdecode/storage"
 	"database/sql"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
 type createAliasData struct {
-	Content string `json:"content"`
+	Name       string       `json:"content"`
+	ResourceId m.ResourceId `json:"resourceId"`
 }
 
 func (d createAliasData) Validate() bool {
-	return d.Content != ""
+	return d.Name != "" && d.ResourceId >= 0
 }
 
 func CreateAliases(db *sql.DB) Handler {
@@ -21,14 +22,14 @@ func CreateAliases(db *sql.DB) Handler {
 		var data createAliasData
 		ctx.BindJSON(&data)
 		if !data.Validate() {
-			ctx.JSON(http.StatusBadRequest, BadResult("Validation error"))
+			BadRequest(ctx, "Validation error")
 			return
 		}
 
-		r, err := storage.CreateAlias(db, auth.Claims.UserId(), data.Content)
+		r, err := storage.CreateAlias(db, auth.Claims.UserId(), data.Name, data.ResourceId)
 
 		if err != nil {
-			ctx.JSON(http.StatusBadRequest, ResultFromError(err))
+			ResultFromError(ctx, err)
 			return
 		}
 
