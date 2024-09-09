@@ -1,8 +1,8 @@
 package main
 
 import (
-	h "cdecode/handlers"
-	"cdecode/storage"
+	h "cdecode/pkg/handlers"
+	"cdecode/pkg/storage"
 	"database/sql"
 	"log"
 

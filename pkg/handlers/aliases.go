@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	m "cdecode/models"
-	"cdecode/storage"
+	m "cdecode/pkg/models"
+	"cdecode/pkg/storage"
 	"database/sql"
 
 	"github.com/gin-gonic/gin"

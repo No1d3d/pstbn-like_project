@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	m "cdecode/models"
-	s "cdecode/storage"
+	m "cdecode/pkg/models"
+	s "cdecode/pkg/storage"
 	"database/sql"
 	"log"
 	"strconv"
