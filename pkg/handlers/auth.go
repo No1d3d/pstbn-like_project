@@ -12,8 +12,8 @@ import (
 	// "github.com/golang-jwt/jwt/v5"
 	"github.com/dgrijalva/jwt-go"
 
-	"cdecode/models"
-	s "cdecode/storage"
+	"cdecode/pkg/models"
+	s "cdecode/pkg/storage"
 )
 
 const (

@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"log"
 
-	m "cdecode/models"
+	m "cdecode/pkg/models"
 )
 
 const (

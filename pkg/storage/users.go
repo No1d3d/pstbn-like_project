@@ -1,7 +1,7 @@
 package storage
 
 import (
-	m "cdecode/models"
+	m "cdecode/pkg/models"
 	"database/sql"
 	"errors"
 	"fmt"

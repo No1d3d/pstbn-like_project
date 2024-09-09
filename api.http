@@ -44,6 +44,16 @@ Authorization: Bearer {{token}}
 
 ###
 
+POST {{host}}/resource/edit
+Authorization: Bearer {{token}}
+
+{
+  "id": 2,
+  "content": "New content\nReally new"
+}
+
+###
+
 # Get user id based on username
 POST {{host}}/auth
 

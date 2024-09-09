@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"cdecode/models"
+	"cdecode/pkg/models"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -103,5 +103,11 @@ func GetResourceById(db *sql.DB, id models.ResourceId) (*models.Resource, error)
 func DeleteResource(db *sql.DB, id models.ResourceId) error {
 	q := `DELETE FROM resources WHERE ` + ResourceIdColumn + ` = ?`
 	_, err := db.Exec(q, id)
+	return err
+}
+
+func UpdateResource(db *sql.DB, r models.Resource) error {
+	q := `UPDATE resources SET ` + ResourceContentColumn + ` = ?  WHERE ` + ResourceIdColumn + ` = ?`
+	_, err := db.Exec(q, r.Content, r.Id)
 	return err
 }
