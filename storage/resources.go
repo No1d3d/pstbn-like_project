@@ -50,7 +50,7 @@ func GetResources(db *sql.DB, userId models.UserId) []*models.Resource {
 	// q = `SELECT * FROM resources`
 	// row, err = db.Query(q)
 	// } else {
-	q := `SELECT * FROM resources WHERE id_user = ?`
+	q := "SELECT " + ResourceIdColumn + ", " + ResourceCreatorColumn + ", " + ResourceContentColumn + ` FROM resources WHERE id_user = ?`
 	row, err := db.Query(q, userId)
 	// }
 	if err != nil {
@@ -59,9 +59,9 @@ func GetResources(db *sql.DB, userId models.UserId) []*models.Resource {
 	defer row.Close()
 	resources := []*models.Resource{}
 	for row.Next() {
-		resource, scan_err := getResourceFromRow(row)
-		if scan_err != nil {
-			log.Println(scan_err)
+		resource, err := getResourceFromRow(row)
+		if err != nil {
+			log.Println(err)
 		}
 		resources = append(resources, resource)
 	}

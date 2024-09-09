@@ -24,18 +24,26 @@ func main() {
 	log.SetOutput(gin.DefaultErrorWriter)
 
 	// routes setup
-	r.GET("/aliases", getAliasesHandler)
-	r.POST("/alias", createAlias)
+	aliases := r.Group("/alias")
+	{
+		aliases.GET("/", getAliasesHandler)
+		aliases.POST("/new", createAlias)
+	}
+	users := r.Group("/user")
+	{
+		users.GET("/", h.GetUsers(db))
+		users.GET("/data/:id", h.GetUserById(db))
+		users.GET("/data/", h.GetUserData(db))
+		users.POST("/new", h.CreateUser(db))
+	}
 
-	r.GET("/users", h.GetUsers(db))
-	r.GET("/user/data/:id", h.GetUserById(db))
-	r.GET("/user/data/", h.GetUserData(db))
-	r.POST("/user/new", h.CreateUser(db))
+	r.POST("/auth", h.Authenticate(db))
 
-	r.POST("/auth", h.Auth(db))
-
-	r.GET("/resources", h.GetResources(db))
-	r.POST("/resource/create", h.CreateResource(db))
+	resources := r.Group("resource")
+	{
+		resources.GET("/", h.GetResources(db))
+		resources.POST("/create", h.CreateResource(db))
+	}
 
 	r.Run(":1488")
 }
