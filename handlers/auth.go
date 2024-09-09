@@ -1,11 +1,7 @@
 package handlers
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
 	"database/sql"
-	"errors"
-	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -24,7 +20,7 @@ const (
 )
 
 var (
-	jwtKey *rsa.PrivateKey
+	AuthKey = []byte("Some cool key")
 )
 
 func Auth(db *sql.DB) Handler {
@@ -80,19 +76,7 @@ func createToken(user *models.User) (string, error) {
 	// if err != nil {
 	// return "", err
 	// }
-	return token.SignedString([]byte("Some cool key"))
-}
-
-func getJwtKey() (*rsa.PrivateKey, error) {
-	if jwtKey != nil {
-		return jwtKey, nil
-	}
-	jwtKey, err := rsa.GenerateKey(rand.Reader, 1024)
-	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Error while generating rs key: %v", err))
-	}
-
-	return jwtKey, nil
+	return token.SignedString(AuthKey)
 }
 
 type AuthData struct {
@@ -135,7 +119,7 @@ func getAuthState(ctx *gin.Context) AuthState {
 
 	var claims ApplicationClaims
 	_, err := jwt.ParseWithClaims(s[1], &claims, func(t *jwt.Token) (interface{}, error) {
-		return getJwtKey()
+		return AuthKey, nil
 	})
 	if err != nil {
 		log.Printf("Error while parsing JWT token: %v", err)
