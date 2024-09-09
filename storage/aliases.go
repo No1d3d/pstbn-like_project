@@ -8,6 +8,10 @@ import (
 )
 
 const (
+	AliasIdColumn      = "id_alias"
+	AliasCreatorColumn = "id_user"
+	AliasNameColumn    = "name"
+
 	createAliasTableSQL = `CREATE TABLE IF NOT EXISTS alias (
 		"id_alias" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
 		"id_user" integer NOT NULL,		
@@ -16,17 +20,14 @@ const (
 	  );` // SQL Statement for Create Table
 )
 
-func GetAliases(db *sql.DB, username string) []m.Alias {
+func GetAliases(db *sql.DB, user_id m.UserId) []m.Alias {
 	var row *sql.Rows
 	var err error
 	var q string
-	if UserIsAdmin(db, username) {
-		q = `SELECT * FROM alias`
-		row, err = db.Query(q)
-	} else {
-		q = `SELECT * FROM alias WHERE id_user = ?`
-		row, err = db.Query(q, GetUserId(db, username))
-	}
+	q = `SELECT * FROM alias WHERE id_user = ?`
+	//if admin, q = `SELECT * FROM alias`
+	row, err = db.Query(q, user_id)
+
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -64,34 +65,62 @@ func checkIfAliasHasNoDupes(db *sql.DB, alias string) bool {
 	return count == 0
 }
 
-// Creates new alias
-func CreateAlias(db *sql.DB, username string, resourceName string, alias string) {
-	if !checkIfAliasHasNoDupes(db, alias) {
-		log.Printf("Alias '%s' already exist", alias)
-		return //alias name already exists
+// new create and insert aliases
+func CreateAlias(db *sql.DB, creatorId m.UserId, name string) (*m.Alias, error) {
+	res := &m.Alias{
+		CreatorId: creatorId,
+		Name:      name,
 	}
-	newAlias := m.Alias{
-		CreatorId:  GetUserId(db, username),
-		ResourceId: GetResourceId(db, username, resourceName),
-		Name:       alias,
-	}
-	insertAlias(db, newAlias)
+	insertAlias(db, res)
+
+	return res, nil
 }
 
-// Creates new entity in database
-func insertAlias(db *sql.DB, alias m.Alias) {
-	log.Println("Adding new alias...")
-	insertAliasSQL := "INSERT INTO alias(id_user, id_resource, name) VALUES (?, ?, ?)"
-	statement, err := db.Prepare(insertAliasSQL) // Prepare statement.
+func insertAlias(db *sql.DB, a *m.Alias) {
+	log.Println("Inserting resources record ...")
+
+	query := `INSERT INTO alias
+    (` + AliasCreatorColumn + `, ` + AliasNameColumn + `) 
+    VALUES (?, ?)`
+	statement, err := db.Prepare(query) // Prepare statement.
+	// This is good to avoid SQL injections
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
-	_, err = statement.Exec(alias.CreatorId, alias.ResourceId, alias.Name)
+	_, err = statement.Exec(a.CreatorId, a.Name)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
-	log.Printf("Alias '%s' for resource '%d' added", alias.Name, alias.ResourceId)
 }
+
+// Creates new alias
+// func CreateAlias(db *sql.DB, username string, resourceName string, alias string) {
+// 	if !checkIfAliasHasNoDupes(db, alias) {
+// 		log.Printf("Alias '%s' already exist", alias)
+// 		return //alias name already exists
+// 	}
+// 	newAlias := m.Alias{
+// 		CreatorId:  GetUserId(db, username),
+// 		ResourceId: GetResourceId(db, username, resourceName),
+// 		Name:       alias,
+// 	}
+// 	insertAlias(db, newAlias)
+// }
+
+// // Creates new entity in database
+// func insertAlias(db *sql.DB, alias m.Alias) {
+// 	log.Println("Adding new alias...")
+// 	insertAliasSQL := "INSERT INTO alias(id_user, id_resource, name) VALUES (?, ?, ?)"
+// 	statement, err := db.Prepare(insertAliasSQL) // Prepare statement.
+// 	if err != nil {
+// 		log.Fatalln(err.Error())
+// 	}
+// 	_, err = statement.Exec(alias.CreatorId, alias.ResourceId, alias.Name)
+// 	if err != nil {
+// 		log.Fatalln(err.Error())
+// 	}
+// 	log.Printf("Alias '%s' for resource '%d' added", alias.Name, alias.ResourceId)
+// }
 
 func ReadContentByAlias(db *sql.DB, alias string) string {
 	var row *sql.Rows
