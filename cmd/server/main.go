@@ -49,7 +49,7 @@ func main() {
 }
 
 func getAliasesHandler(ctx *gin.Context) {
-	ctx.JSON(200, storage.GetAliases(db, defaultUsername))
+	//aboba
 }
 func createAlias(ctx *gin.Context) {
 	log.Fatalf("TODO: Implement create alias method")
