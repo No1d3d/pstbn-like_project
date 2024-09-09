@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	m "cdecode/models"
 	"cdecode/storage"
 	"database/sql"
 	"log"
@@ -55,7 +56,10 @@ func DeleteResource(db *sql.DB) Handler {
 			return
 		}
 
-		log.Println("Resource found")
+		if res.UserId != as.Claims.UserId() {
+			NotFound(ctx)
+			return
+		}
 
 		err = storage.DeleteResource(db, res.Id)
 		if err != nil {
@@ -64,5 +68,33 @@ func DeleteResource(db *sql.DB) Handler {
 			return
 		}
 		Success(ctx)
+	})
+}
+
+type updateResourceData struct {
+	Id      m.ResourceId `json:"id"`
+	Content string       `json:"content"`
+}
+
+func UpdateResource(db *sql.DB) Handler {
+	return authenticated(func(ctx *gin.Context, as *AuthState) {
+		var data updateResourceData
+		ctx.BindJSON(&data)
+
+		res, err := storage.GetResourceById(db, data.Id)
+		if err != nil {
+			log.Println(err)
+			NotFound(ctx)
+			return
+		}
+		if res.UserId != as.Claims.UserId() {
+			NotFound(ctx)
+			return
+		}
+
+		res.Content = data.Content
+
+		storage.UpdateResource(db, *res)
+		ctx.JSON(200, res)
 	})
 }

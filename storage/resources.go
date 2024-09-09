@@ -105,3 +105,9 @@ func DeleteResource(db *sql.DB, id models.ResourceId) error {
 	_, err := db.Exec(q, id)
 	return err
 }
+
+func UpdateResource(db *sql.DB, r models.Resource) error {
+	q := `UPDATE resources SET ` + ResourceContentColumn + ` = ?  WHERE ` + ResourceIdColumn + ` = ?`
+	_, err := db.Exec(q, r.Content, r.Id)
+	return err
+}

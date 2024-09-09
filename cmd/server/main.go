@@ -46,7 +46,7 @@ func main() {
 		resources.GET("/", h.GetResources(db))                // Get users resources
 		resources.POST("/create", h.CreateResource(db))       // Create new resource
 		resources.DELETE("/delete/:id", h.DeleteResource(db)) // Delete existing resource
-		resources.POST("/edit", dummyHandler)                 // Edit existing resource content
+		resources.POST("/edit", h.UpdateResource(db))         // Edit existing resource content
 	}
 
 	r.Run(":1488")
