@@ -4,12 +4,14 @@ import (
 	m "cdecode/pkg/models"
 	"cdecode/pkg/storage"
 	"database/sql"
+	"log"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
 type createAliasData struct {
-	Name       string       `json:"content"`
+	Name       string       `json:"name"`
 	ResourceId m.ResourceId `json:"resourceId"`
 }
 
@@ -17,7 +19,7 @@ func (d createAliasData) Validate() bool {
 	return d.Name != "" && d.ResourceId >= 0
 }
 
-func CreateAliases(db *sql.DB) Handler {
+func CreateAlias(db *sql.DB) Handler {
 	return authenticated(func(ctx *gin.Context, auth *AuthState) {
 		var data createAliasData
 		ctx.BindJSON(&data)
@@ -34,6 +36,34 @@ func CreateAliases(db *sql.DB) Handler {
 		}
 
 		ctx.JSON(200, r)
+	})
+}
+
+func DeleteAlias(db *sql.DB) Handler {
+	return authenticated(func(ctx *gin.Context, auth *AuthState) {
+
+		id, _ := strconv.Atoi(ctx.Param("id"))
+
+		alias, err := storage.GetAliasById(db, id)
+		if err != nil {
+			log.Println(err)
+			NotFound(ctx)
+			return
+		}
+
+		if alias.CreatorId != auth.Claims.UserId() {
+			log.Println("User tried to delete alias that he is not own")
+			NotFound(ctx)
+			return
+		}
+
+		err = storage.DeleteAlias(db, id)
+		if err != nil {
+			ResultFromError(ctx, err)
+			return
+		}
+		Success(ctx)
+
 	})
 }
 

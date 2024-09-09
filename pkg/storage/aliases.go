@@ -2,8 +2,11 @@ package storage
 
 import (
 	"database/sql"
+	"errors"
+	"fmt"
 	"log"
 
+	"cdecode/pkg/models"
 	m "cdecode/pkg/models"
 )
 
@@ -25,8 +28,7 @@ func GetAliases(db *sql.DB, user_id m.UserId) []m.Alias {
 	var row *sql.Rows
 	var err error
 	var q string
-	q = `SELECT * FROM alias WHERE id_user = ?`
-	//if admin, q = `SELECT * FROM alias`
+	q = `SELECT ` + AliasIdColumn + ", " + AliasCreatorColumn + ", " + AliasResourceColumn + ", " + AliasNameColumn + ` FROM alias WHERE id_user = ?`
 	row, err = db.Query(q, user_id)
 
 	if err != nil {
@@ -95,35 +97,26 @@ func insertAlias(db *sql.DB, a *m.Alias) {
 	}
 }
 
-// Creates new alias
-// func CreateAlias(db *sql.DB, username string, resourceName string, alias string) {
-// 	if !checkIfAliasHasNoDupes(db, alias) {
-// 		log.Printf("Alias '%s' already exist", alias)
-// 		return //alias name already exists
-// 	}
-// 	newAlias := m.Alias{
-// 		CreatorId:  GetUserId(db, username),
-// 		ResourceId: GetResourceId(db, username, resourceName),
-// 		Name:       alias,
-// 	}
-// 	insertAlias(db, newAlias)
-// }
+func GetAliasById(db *sql.DB, id m.AliasId) (*m.Alias, error) {
+	query := "SELECT * FROM alias WHERE " + AliasIdColumn + " = ?"
+	stmt, err := db.Prepare(query)
 
-// // Creates new entity in database
-// func insertAlias(db *sql.DB, alias m.Alias) {
-// 	log.Println("Adding new alias...")
-// 	insertAliasSQL := "INSERT INTO alias(id_user, id_resource, name) VALUES (?, ?, ?)"
-// 	statement, err := db.Prepare(insertAliasSQL) // Prepare statement.
-// 	if err != nil {
-// 		log.Fatalln(err.Error())
-// 	}
-// 	_, err = statement.Exec(alias.CreatorId, alias.ResourceId, alias.Name)
-// 	if err != nil {
-// 		log.Fatalln(err.Error())
-// 	}
-// 	log.Printf("Alias '%s' for resource '%d' added", alias.Name, alias.ResourceId)
-// }
+	if err != nil {
+		return nil, err
+	}
 
+	row, err := stmt.Query(id)
+
+	if err != nil {
+		return nil, err
+	}
+	defer row.Close()
+	for row.Next() {
+		alias, err := getAliasFromRow(row)
+		return alias, err
+	}
+	return nil, errors.New(fmt.Sprintf("No such alias with id %d", id))
+}
 func ReadContentByAlias(db *sql.DB, alias string) string {
 	var row *sql.Rows
 	q := `SELECT content FROM resources WHERE id_resource = (SELECT id_resource FROM alias WHERE name = ?)`
@@ -143,4 +136,10 @@ func ReadContentByAlias(db *sql.DB, alias string) string {
 	}
 	log.Printf("Content: %s", content)
 	return content
+}
+
+func DeleteAlias(db *sql.DB, id models.AliasId) error {
+	q := `DELETE FROM alias WHERE ` + AliasIdColumn + ` = ?`
+	_, err := db.Exec(q, id)
+	return err
 }

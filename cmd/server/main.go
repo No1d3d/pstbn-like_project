@@ -26,20 +26,20 @@ func main() {
 	// routes setup
 	aliases := r.Group("/alias")
 	{
-		aliases.GET("/", h.GetAliases(db))
-		aliases.POST("/new", h.CreateAliases(db))
+		aliases.GET("/", h.GetAliases(db))               // Get user's aliases
+		aliases.POST("/new", h.CreateAlias(db))          // Create new alias for specified resource
+		aliases.DELETE("/delete/:id", h.DeleteAlias(db)) // Delete user's alias
 	}
+
 	users := r.Group("/user")
 	{
 		users.GET("/", h.GetUsers(db))                // List users
 		users.GET("/data/:id", h.GetUserDataById(db)) // Get user data
 		users.GET("/data/", h.GetUserData(db))        // Get current authorized user data
 		users.POST("/new", h.CreateUser(db))          // Register
-		users.POST("/change/password", dummyHandler)  // Change password
-		users.POST("/change/name", dummyHandler)      // Change username
+		users.POST("/change/password", dummyHandler)  // Change password TODO: implement
+		users.POST("/change/name", dummyHandler)      // Change username TODO: implement
 	}
-
-	r.POST("/auth", h.Authenticate(db))
 
 	resources := r.Group("resource")
 	{
@@ -48,6 +48,8 @@ func main() {
 		resources.DELETE("/delete/:id", h.DeleteResource(db)) // Delete existing resource
 		resources.POST("/edit", h.UpdateResource(db))         // Edit existing resource content
 	}
+
+	r.POST("/auth", h.Authenticate(db))
 
 	r.Run(":1488")
 }

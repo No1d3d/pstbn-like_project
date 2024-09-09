@@ -4,21 +4,24 @@
 ###
 
 # Get all aliases
-GET {{host}}/aliases
+GET {{host}}/alias/
+Authorization: Bearer {{token}}
 
 ###
 
 # Create new alias
-POST {{host}}/alias
+POST {{host}}/alias/new
+Authorization: Bearer {{token}}
 
 {
-  "target": "12",
-  "name": "new alias"
+  "resourceId": 2,
+  "name": "new2"
 }
 
 ###
 
-DELETE {{host}}/alias/id
+DELETE {{host}}/alias/delete/3
+Authorization: Bearer {{token}}
 
 ###
 
