@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cdecode/handlers"
 	h "cdecode/handlers"
 	"cdecode/storage"
 	"database/sql"
@@ -49,7 +50,7 @@ func main() {
 }
 
 func getAliasesHandler(ctx *gin.Context) {
-	//aboba
+	ctx.JSON(200, handlers.GetAliases(db))
 }
 func createAlias(ctx *gin.Context) {
 	log.Fatalf("TODO: Implement create alias method")
