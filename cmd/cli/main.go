@@ -61,7 +61,7 @@ func main() {
 			} else if options[1] == "resource" {
 				content := AskForInput(reader, "Enter content for your desired resource: ")
 				name := AskForInput(reader, "Enter a name for this resource: ")
-				database.CreateResorce(db, current_user, name, content)
+				database.CreateResource(db, current_user, name, content)
 			} else if options[1] == "alias" {
 				resource_name := AskForInput(reader, "Enter the name of the resource you want to create an alias for: ")
 				alias := AskForInput(reader, "Enter an alias for this resource: ")
@@ -105,7 +105,7 @@ func main() {
 
 				fmt.Println("\tid_r | id_u | name | content")
 				for _, r := range resources {
-					fmt.Println("\t", r.Id, " | ", r.User, " | ", r.Name, " | ", r.Content)
+					fmt.Println("\t", r.Id, " | ", r.UserId, " | ", r.Name, " | ", r.Content)
 				}
 
 			} else if options[1] == "alias" {

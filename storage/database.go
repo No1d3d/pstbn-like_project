@@ -1,6 +1,7 @@
 package storage
 
 import (
+	m "cdecode/models"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -9,19 +10,6 @@ import (
 
 	_ "github.com/mattn/go-sqlite3" // Import go-sqlite3 library
 )
-
-type User struct {
-	Id      UserId
-	Name    string
-	IsAdmin bool
-}
-
-type Resource struct {
-	Id      ResourceId
-	User    UserId
-	Name    string
-	Content string
-}
 
 func CheckFileExists(filePath string) bool {
 	_, error := os.Stat(filePath)
@@ -45,30 +33,12 @@ func InitDB() *sql.DB {
 	db, _ := sql.Open("sqlite3", DbFile)
 
 	// create users table
-	createUsersTableSQL := `CREATE TABLE IF NOT EXISTS users (
-		"id_user" integer NOT NULL PRIMARY KEY AUTOINCREMENT,		
-		"name" TEXT UNIQUE,
-		"is_admin" BOOLEAN DEFAULT FALSE
-	  );` // SQL Statement for Create Table
 	createTable(db, createUsersTableSQL)
 
 	// create resources table
-	createResourcesTableSQL := `CREATE TABLE IF NOT EXISTS resources (
-		"id_resource" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
-		"id_user" integer NOT NULL,		
-		"name" TEXT,
-		"content" TEXT		
-	  );` // SQL Statement for Create Table
 	createTable(db, createResourcesTableSQL)
 
 	// create alias table
-	createAliasTableSQL := `CREATE TABLE IF NOT EXISTS alias (
-		"id_alias" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
-		"id_user" integer NOT NULL,		
-		"id_resource" integer NOT NULL,		
-		"name" TEXT	
-	  );` // SQL Statement for Create Table
-
 	createTable(db, createAliasTableSQL)
 
 	return db
@@ -131,18 +101,19 @@ func UserIsAdmin(db *sql.DB, username string) bool {
 }
 
 // insert new entry in users table
-func InsertUsers(db *sql.DB, name string) {
-	fmt.Println("Inserting users record ...")
-	insertUsersSQL := `INSERT INTO users(name, is_admin) VALUES (?, ?)`
+func InsertUser(db *sql.DB, user m.User) error {
+	fmt.Println("Inserting user record...")
+	insertUsersSQL := `INSERT INTO users(name, password, is_admin) VALUES (?, ?, ?)`
 	statement, err := db.Prepare(insertUsersSQL) // Prepare statement.
 	// This is good to avoid SQL injections
 	if err != nil {
-		log.Fatalln(err.Error())
+		return err
 	}
-	_, err = statement.Exec(name, false)
+	_, err = statement.Exec(user.Name, user.Password, false)
 	if err != nil {
-		log.Fatalln(err.Error())
+		return err
 	}
+	return nil
 }
 
 func AdminCreateNewUser(db *sql.DB, username string) {
@@ -183,10 +154,10 @@ func GetUserId(db *sql.DB, username string) int {
 }
 
 // check no duplicated name of resource for user
-func CheckIfResourceHasNoDupNames(db *sql.DB, username string, resource_name string) bool {
+func CheckIfResourceHasNoDupNames(db *sql.DB, resourceName string) bool {
 	var count int
-	q := `SELECT COUNT(name) FROM resources WHERE name = ? AND id_user = ?`
-	row := db.QueryRow(q, resource_name, GetUserId(db, username))
+	q := `SELECT COUNT(name) FROM resources WHERE name = ?`
+	row := db.QueryRow(q, resourceName)
 	err := row.Scan(&count)
 	if err != nil {
 		log.Fatal(err)
@@ -196,11 +167,11 @@ func CheckIfResourceHasNoDupNames(db *sql.DB, username string, resource_name str
 
 // create resource
 
-func GetResourceId(db *sql.DB, username, resource_name string) int {
+func GetResourceId(db *sql.DB, username, resourceName string) int {
 	var row *sql.Rows
 	var err error
 	q := `SELECT id_resource FROM resources WHERE id_user = ? AND name = ?`
-	row, err = db.Query(q, GetUserId(db, username), resource_name)
+	row, err = db.Query(q, GetUserId(db, username), resourceName)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -227,43 +198,34 @@ func RegisterUser(db *sql.DB, username string) {
 	if UserExists(db, username) {
 		fmt.Print("\nWelcome back, ", username, "!\n")
 	} else {
-		InsertUsers(db, username)
+		user := m.User{
+			Name:    username,
+			IsAdmin: false,
+		}
+		InsertUser(db, user)
 		fmt.Print("\nNice to meet you, ", username, "!\n")
 	}
 	fmt.Print("\n\nAuthorisation complete!\n---------------\n\n")
+	// }
 }
 
 // region create
 
-func CreateResorce(db *sql.DB, username string, name string, content string) {
-	if !CheckIfResourceHasNoDupNames(db, username, name) {
-		return // This name is occupied
-	}
-	fmt.Println("Adding new resource...")
-	InsertResources(db, GetUserId(db, username), name, content)
-	fmt.Println("New resource added!")
-}
-
-func InsertResources(db *sql.DB, id_user int, name string, content string) {
-	fmt.Println("Inserting resources record ...")
-	insertResourcesSQL := `INSERT INTO resources(id_user, name, content) VALUES (?, ?, ?)`
-	statement, err := db.Prepare(insertResourcesSQL) // Prepare statement.
-	// This is good to avoid SQL injections
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-	_, err = statement.Exec(id_user, name, content)
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-}
-
-func CreateUser(db *sql.DB, username string, name string) {
+func CreateUser(db *sql.DB, name string, password string) (*m.User, error) {
 	if UserExists(db, name) {
-		fmt.Println("This username is occupied.")
-	} else {
-		InsertUsers(db, name)
+		return nil, errors.New("This username is occupied")
 	}
+	user := m.User{
+		Name:     name,
+		Password: password,
+		IsAdmin:  false,
+	}
+	err := InsertUser(db, user)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 // region alias
@@ -273,7 +235,7 @@ func AliasConnect(db *sql.DB, username string, resource string, alias string) {
 		fmt.Println("There is no such alias...")
 		return
 	}
-	if CheckIfResourceHasNoDupNames(db, username, resource) {
+	if CheckIfResourceHasNoDupNames(db, resource) {
 		fmt.Println("There is no such resource...")
 		return
 	}
@@ -300,41 +262,6 @@ func AliasDisconnect(db *sql.DB, username string, alias string) {
 
 // region show
 
-func getUserFromRow(row *sql.Rows) (*User, error) {
-	user := &User{}
-	if err := row.Scan(&user.Id, &user.Name, &user.IsAdmin); err != nil {
-		return nil, err
-	}
-
-	return user, nil
-}
-
-func GetUsers(db *sql.DB, username string) []User {
-	var row *sql.Rows
-	var err error
-	var q string
-	//if UserIsAdmin(db, username) {
-	q = `SELECT * FROM users`
-	row, err = db.Query(q)
-	//} else {
-	// q = `SELECT * FROM users WHERE id_user = ?`
-	// row, err = db.Query(q, GetUserId(db, username))
-	// }
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer row.Close()
-	users := []User{}
-	for row.Next() {
-		user, scan_err := getUserFromRow(row)
-		if scan_err != nil {
-			log.Println(scan_err)
-		}
-		users = append(users, *user)
-	}
-	return users
-}
-
 func ShowUsers(db *sql.DB, username string) {
 	var row *sql.Rows
 	var err error
@@ -359,41 +286,6 @@ func ShowUsers(db *sql.DB, username string) {
 		}
 		fmt.Printf("  %4d    |   %4s\n", id_user, name)
 	}
-}
-
-func getResourceFromRow(row *sql.Rows) (*Resource, error) {
-	resource := &Resource{}
-	if err := row.Scan(&resource.Id, &resource.User, &resource.Name, &resource.Content); err != nil {
-		return nil, err
-	}
-
-	return resource, nil
-}
-
-func GetResources(db *sql.DB, username string) []Resource {
-	var row *sql.Rows
-	var err error
-	var q string
-	if UserIsAdmin(db, username) {
-		q = `SELECT * FROM resources`
-		row, err = db.Query(q)
-	} else {
-		q = `SELECT * FROM resources WHERE id_user = ?`
-		row, err = db.Query(q, GetUserId(db, username))
-	}
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer row.Close()
-	resources := []Resource{}
-	for row.Next() {
-		resource, scan_err := getResourceFromRow(row)
-		if scan_err != nil {
-			log.Println(scan_err)
-		}
-		resources = append(resources, *resource)
-	}
-	return resources
 }
 
 func ShowResources(db *sql.DB, username string) {
@@ -457,16 +349,16 @@ func DeleteUser(db *sql.DB, username *string, target string, new_username string
 
 // region read
 
-func ReadContentByResource(db *sql.DB, username string, resource_name string) string {
+func ReadContentByResource(db *sql.DB, username string, resourceName string) string {
 	var row *sql.Rows
 	q := `SELECT content FROM resources WHERE id_user = ? AND name = ?`
-	row, err := db.Query(q, GetUserId(db, username), resource_name)
+	row, err := db.Query(q, GetUserId(db, username), resourceName)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer row.Close()
 	if !row.Next() {
-		log.Printf("No resource was found with name '%s'", resource_name)
+		log.Printf("No resource was found with name '%s'", resourceName)
 		return ""
 	}
 	var content string
@@ -478,7 +370,7 @@ func ReadContentByResource(db *sql.DB, username string, resource_name string) st
 	return content
 }
 
-func ReadResource(db *sql.DB, target string, resource_name string) ([]Resource, int) {
+func ReadResource(db *sql.DB, target string, resource_name string) ([]m.Resource, int) {
 	var row *sql.Rows
 	var err error
 	counter := 0
@@ -488,7 +380,7 @@ func ReadResource(db *sql.DB, target string, resource_name string) ([]Resource, 
 		log.Fatal(err)
 	}
 	defer row.Close()
-	resources := []Resource{}
+	resources := []m.Resource{}
 	for row.Next() {
 		resource, scan_err := getResourceFromRow(row)
 		if scan_err != nil {
@@ -509,161 +401,3 @@ func ChangeUser(db *sql.DB, username *string, new_username string) {
 	}
 	username = &new_username
 }
-
-// endregion
-
-// regio Delete
-// func DeleteEntry(db *sql.DB, reader *bufio.Reader, username string) string {
-// 	cur_user := username
-// 	fmt.Println("What would you like to delete (users, resources, alias)?")
-// 	fmt.Println("Your choice: ")
-// 	choice, _ := reader.ReadString('\n')
-// 	choice = strings.TrimSpace(choice)
-// 	if choice == "alias" {
-// 		fmt.Print("Enter name of alias to delete: ")
-// 		inpt, _ := reader.ReadString('\n')
-// 		inpt = strings.TrimSpace(inpt)
-// 		fmt.Println("Deleting alias")
-// 		DeleteAlias(db, inpt, username)
-// 		fmt.Println("Alias deleted!")
-// 	} else if choice == "resources" {
-// 		fmt.Print("Enter name of resource to delete: ")
-// 		inpt, _ := reader.ReadString('\n')
-// 		inpt = strings.TrimSpace(inpt)
-// 		fmt.Println("Deleting resource")
-// 		DeleteResource(db, inpt, username)
-// 		fmt.Println("Resource deleted")
-// 	} else if choice == "users" {
-// 		var inpt string
-// 		if username == "admin" {
-// 			fmt.Print("Enter name of user to delete: ")
-// 			inpt, _ = reader.ReadString('\n')
-// 			inpt = strings.TrimSpace(inpt)
-// 		} else {
-// 			inpt = username
-// 		}
-// 		fmt.Println("Deleting user |", inpt, "|")
-// 		DeleteUser(db, inpt)
-// 		fmt.Println("User deleted!")
-// 		if inpt == username {
-// 			fmt.Println("Redirecting to Authorization!")
-// 			cur_user = RegisterUser(db, reader)
-// 		}
-// 	} else {
-// 		fmt.Println("Error: no such option:\t", choice)
-// 	}
-// 	return cur_user
-// }
-
-// func DeleteAlias(db *sql.DB, alias string, username string) {
-// 	log.Println("Deleting alias ", alias)
-// 	q := `DELETE FROM alias WHERE id_user = ? AND name = ?`
-// 	_, err := db.Exec(q, GetUserId(db, username), alias)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// }
-
-// func ShowResource(db *sql.DB, reader *bufio.Reader) {
-// 	fmt.Println("Enter an alias assigned for a resource: ")
-// 	alias, _ := reader.ReadString('\n')
-// 	alias = strings.TrimSpace(alias)
-// 	fmt.Println("Looking for a resource...")
-// 	DisplayAlias(db, alias)
-// }
-
-// func DisplayAlias(db *sql.DB, resource_alias string) {
-// 	var row *sql.Rows
-// 	var err error
-// 	q := `SELECT content FROM resources WHERE id_resource = (SELECT id_resource FROM alias WHERE name = ?)`
-// 	row, err = db.Query(q, resource_alias)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	defer row.Close()
-// 	var content string
-// 	counter := 0
-// 	for row.Next() {
-// 		if scan_err := row.Scan(&content); err != nil {
-// 			log.Fatal(scan_err)
-// 		}
-// 		fmt.Println("\t", content)
-// 		counter++
-// 	}
-// 	if counter == 0 {
-// 		fmt.Println("No resource... Error...")
-// 	}
-// }
-
-// os.Remove("sqlite-database.db") // I delete the file to avoid duplicated records.
-//                                 // SQLite is a file based database.
-
-// fmt.Println("Creating sqlite-database.db...")
-// file, err := os.Create("sqlite-database.db") // Create SQLite file
-// if err != nil {
-// 	log.Fatal(err.Error())
-// }
-// file.Close()
-// fmt.Println("sqlite-database.db created")
-
-// sqliteDatabase, _ := sql.Open
-// ("sqlite3", "./sqlite-database.db") // Open the created SQLite File
-// defer sqliteDatabase.Close() // Defer Closing the database
-
-// create alias
-// func ShowResource(db *sql.DB, reader *bufio.Reader) {
-// 	fmt.Println("Enter an alias assigned for a resource: ")
-// 	alias, _ := reader.ReadString('\n')
-// 	alias = strings.TrimSpace(alias)
-// 	fmt.Println("Looking for a resource...")
-// 	DisplayAlias(db, alias)
-// }
-
-// func DisplayAlias(db *sql.DB, resource_alias string) {
-// 	var row *sql.Rows
-// 	var err error
-// 	q := `SELECT content FROM resources WHERE id_resource = (SELECT id_resource FROM alias WHERE name = ?)`
-// 	row, err = db.Query(q, resource_alias)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	defer row.Close()
-// 	var content string
-// 	counter := 0
-// 	for row.Next() {
-// 		if scan_err := row.Scan(&content); err != nil {
-// 			log.Fatal(scan_err)
-// 		}
-// 		fmt.Println("\t", content)
-// 		counter++
-// 	}
-// 	if counter == 0 {
-// 		fmt.Println("No resource... Error...")
-// 	}
-// }
-
-// check if user exists
-// func UserExists(db *sql.DB, username string) bool {
-// 	sqlStmt := `SELECT username FROM userinfo WHERE username = ?`
-// 	err := db.QueryRow(sqlStmt, username).Scan(&username)
-// 	if err != nil {
-// 		if err != sql.ErrNoRows {
-// 			// a real error happened! you should change your function return
-// 			// to "(bool, error)" and return "false, err" here
-// 			fmt.Print(err)
-// 		}
-
-// 		return false
-// 	}
-
-// 	return true
-// }
-
-// func UserExists(db *sql.DB, username string) bool {
-// 	row := db.QueryRow("select user_email from users where user_email= ?", username)
-// 	temp := ""
-// 	row.Scan(&temp)
-// 	return temp != ""
-// }
-
-// endregion
