@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"log"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -23,7 +24,7 @@ var (
 	AuthKey = []byte("Some cool key")
 )
 
-func Auth(db *sql.DB) Handler {
+func Authenticate(db *sql.DB) Handler {
 	return func(ctx *gin.Context) {
 
 		var data AuthData
@@ -150,4 +151,19 @@ func getAuthenticatedUserId(ctx *gin.Context) (models.UserId, error) {
 	}
 
 	return id, nil
+}
+
+type AuthHandler = func(*gin.Context, *AuthState)
+
+func authenticated(h AuthHandler) Handler {
+	return func(ctx *gin.Context) {
+		state := getAuthState(ctx)
+
+		if !state.IsAuthenticated() {
+			ctx.JSON(http.StatusUnauthorized, "Not authorized")
+			return
+		}
+
+		h(ctx, &state)
+	}
 }

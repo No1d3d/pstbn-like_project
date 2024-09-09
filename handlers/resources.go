@@ -17,16 +17,8 @@ func (d createResourceData) Validate() bool {
 }
 
 func CreateResource(db *sql.DB) Handler {
-	return func(ctx *gin.Context) {
+	return authenticated(func(ctx *gin.Context, auth *AuthState) {
 		var data createResourceData
-
-		auth := getAuthState(ctx)
-
-		if !auth.IsAuthenticated() {
-			ctx.JSON(http.StatusUnauthorized, BadResult("Not authenticated"))
-			return
-		}
-
 		ctx.BindJSON(&data)
 		if !data.Validate() {
 			ctx.JSON(http.StatusBadRequest, BadResult("Validation error"))
@@ -41,19 +33,12 @@ func CreateResource(db *sql.DB) Handler {
 		}
 
 		ctx.JSON(200, r)
-	}
+	})
 }
 
 func GetResources(db *sql.DB) Handler {
-	return func(ctx *gin.Context) {
-
-		auth := getAuthState(ctx)
-		if !auth.IsAuthenticated() {
-			ctx.JSON(http.StatusUnauthorized, "")
-			return
-		}
+	return authenticated(func(ctx *gin.Context, auth *AuthState) {
 		res := storage.GetResources(db, auth.Claims.UserId())
-
 		ctx.JSON(200, res)
-	}
+	})
 }

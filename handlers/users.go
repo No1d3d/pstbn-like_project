@@ -83,20 +83,14 @@ func GetUserById(db *sql.DB) Handler {
 }
 
 func GetUserData(db *sql.DB) Handler {
-	return func(ctx *gin.Context) {
+	return authenticated(func(ctx *gin.Context, auth *AuthState) {
 
-		authState := getAuthState(ctx)
-		if !authState.IsAuthenticated() {
-			ctx.JSON(http.StatusBadRequest, BadResult("Not authorized"))
-			return
-		}
-
-		user, err := s.GetUserById(db, authState.Claims.UserId())
+		user, err := s.GetUserById(db, auth.Claims.UserId())
 		if err != nil {
 			ctx.JSON(400, ResultFromError(err))
 			return
 		}
 		// user.HidePassword()
 		ctx.JSON(200, user)
-	}
+	})
 }

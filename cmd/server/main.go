@@ -37,7 +37,7 @@ func main() {
 		users.POST("/new", h.CreateUser(db))
 	}
 
-	r.POST("/auth", h.Auth(db))
+	r.POST("/auth", h.Authenticate(db))
 
 	resources := r.Group("resource")
 	{
