@@ -28,11 +28,7 @@ DELETE {{host}}/alias
 
 # Get specified resource
 GET  {{host}}/resource
-
-{
-  "name": "name"
-}
-# name can be alias
+Authorization: Bearer {{token}}
 
 ###
 
@@ -41,7 +37,6 @@ POST {{host}}/resource/create
 Authorization: Bearer {{token}}
 
 {
-  "name": "name",
   "content": "lorem ipsum"
 }
 

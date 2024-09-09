@@ -9,12 +9,11 @@ import (
 )
 
 type createResourceData struct {
-	Name    string `json:"name"`
 	Content string `json:"content"`
 }
 
 func (d createResourceData) Validate() bool {
-	return d.Name != "" && d.Content != ""
+	return d.Content != ""
 }
 
 func CreateResource(db *sql.DB) Handler {
