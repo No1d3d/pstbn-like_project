@@ -3,7 +3,6 @@ package handlers
 import (
 	m "cdecode/pkg/models"
 	s "cdecode/pkg/storage"
-	"database/sql"
 	"log"
 	"strconv"
 
@@ -14,9 +13,11 @@ type Handler = func(*gin.Context)
 
 const defaultUsername = "admin"
 
-func GetUsers(db *sql.DB) Handler {
+func GetUsers(res s.DatabaseResolver) Handler {
 	return func(ctx *gin.Context) {
-		users := s.GetUsers(db)
+		db := res()
+		defer db.Close()
+		users := db.GetUsers()
 		users = hidePasswords(users)
 		ctx.JSON(200, users)
 	}
@@ -35,7 +36,7 @@ type createUserCommand struct {
 }
 
 // Registration endpoint
-func CreateUser(db *sql.DB) Handler {
+func CreateUser(res s.DatabaseResolver) Handler {
 	return func(ctx *gin.Context) {
 
 		var command createUserCommand
@@ -53,7 +54,10 @@ func CreateUser(db *sql.DB) Handler {
 			return
 		}
 
-		user, err := s.CreateUser(db, command.Name, command.Password)
+		db := res()
+		defer db.Close()
+
+		user, err := db.CreateUser(command.Name, command.Password)
 		if err != nil {
 			ResultFromError(ctx, err)
 			return
@@ -62,7 +66,7 @@ func CreateUser(db *sql.DB) Handler {
 	}
 }
 
-func GetUserDataById(db *sql.DB) Handler {
+func GetUserDataById(res s.DatabaseResolver) Handler {
 	return func(ctx *gin.Context) {
 
 		id, err := strconv.Atoi(ctx.Param("id"))
@@ -71,7 +75,11 @@ func GetUserDataById(db *sql.DB) Handler {
 			ResultFromError(ctx, err)
 			return
 		}
-		user, err := s.GetUserById(db, id)
+
+		db := res()
+		defer db.Close()
+
+		user, err := db.GetUserById(id)
 		if err != nil {
 			ResultFromError(ctx, err)
 			return
@@ -81,10 +89,13 @@ func GetUserDataById(db *sql.DB) Handler {
 	}
 }
 
-func GetUserData(db *sql.DB) Handler {
+func GetUserData(res s.DatabaseResolver) Handler {
 	return authenticated(func(ctx *gin.Context, auth *AuthState) {
 
-		user, err := s.GetUserById(db, auth.Claims.UserId())
+		db := res()
+		defer db.Close()
+
+		user, err := db.GetUserById(auth.Claims.UserId())
 		if err != nil {
 			ResultFromError(ctx, err)
 			return

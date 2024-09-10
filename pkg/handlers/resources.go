@@ -2,8 +2,7 @@ package handlers
 
 import (
 	m "cdecode/pkg/models"
-	"cdecode/pkg/storage"
-	"database/sql"
+	s "cdecode/pkg/storage"
 	"log"
 	"strconv"
 
@@ -18,7 +17,7 @@ func (d createResourceData) Validate() bool {
 	return d.Content != ""
 }
 
-func CreateResource(db *sql.DB) Handler {
+func CreateResource(res s.DatabaseResolver) Handler {
 	return authenticated(func(ctx *gin.Context, auth *AuthState) {
 		var data createResourceData
 		ctx.BindJSON(&data)
@@ -27,7 +26,10 @@ func CreateResource(db *sql.DB) Handler {
 			return
 		}
 
-		r, err := storage.CreateResource(db, auth.Claims.UserId(), data.Content)
+		db := res()
+		defer db.Close()
+
+		r, err := db.CreateResource(auth.Claims.UserId(), data.Content)
 
 		if err != nil {
 			InternalError(ctx)
@@ -38,30 +40,35 @@ func CreateResource(db *sql.DB) Handler {
 	})
 }
 
-func GetResources(db *sql.DB) Handler {
+func GetResources(res s.DatabaseResolver) Handler {
 	return authenticated(func(ctx *gin.Context, auth *AuthState) {
-		res := storage.GetResources(db, auth.Claims.UserId())
-		ctx.JSON(200, res)
+		db := res()
+		defer db.Close()
+		result := db.GetResources(auth.Claims.UserId())
+		ctx.JSON(200, result)
 	})
 }
 
-func DeleteResource(db *sql.DB) Handler {
+func DeleteResource(res s.DatabaseResolver) Handler {
 	return authenticated(func(ctx *gin.Context, as *AuthState) {
 		id, _ := strconv.Atoi(ctx.Param("id"))
 
-		res, err := storage.GetResourceById(db, id)
+		db := res()
+		defer db.Close()
+
+		result, err := db.GetResourceById(id)
 		if err != nil {
 			log.Println(err)
 			NotFound(ctx)
 			return
 		}
 
-		if res.UserId != as.Claims.UserId() {
+		if result.UserId != as.Claims.UserId() {
 			NotFound(ctx)
 			return
 		}
 
-		err = storage.DeleteResource(db, res.Id)
+		err = db.DeleteResource(result.Id)
 		if err != nil {
 			log.Println(err)
 			ResultFromError(ctx, err)
@@ -76,25 +83,31 @@ type updateResourceData struct {
 	Content string       `json:"content"`
 }
 
-func UpdateResource(db *sql.DB) Handler {
+func UpdateResource(res s.DatabaseResolver) Handler {
 	return authenticated(func(ctx *gin.Context, as *AuthState) {
 		var data updateResourceData
 		ctx.BindJSON(&data)
 
-		res, err := storage.GetResourceById(db, data.Id)
+		db := res()
+		defer db.Close()
+
+		result, err := db.GetResourceById(data.Id)
 		if err != nil {
 			log.Println(err)
 			NotFound(ctx)
 			return
 		}
-		if res.UserId != as.Claims.UserId() {
+		if result.UserId != as.Claims.UserId() {
 			NotFound(ctx)
 			return
 		}
 
-		res.Content = data.Content
+		result.Content = data.Content
 
-		storage.UpdateResource(db, *res)
-		ctx.JSON(200, res)
+		err = db.UpdateResource(*result)
+		if err != nil {
+			ResultFromError(ctx, err)
+		}
+		ctx.JSON(200, result)
 	})
 }

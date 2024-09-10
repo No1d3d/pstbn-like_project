@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"cdecode/pkg/models"
+	m "cdecode/pkg/models"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -17,27 +17,26 @@ const (
 		"` + ResourceIdColumn + `" integer NOT NULL PRIMARY KEY AUTOINCREMENT
 		,"` + ResourceCreatorColumn + `" integer NOT NULL
 		,"` + ResourceContentColumn + `" TEXT
-	  );` // SQL Statement for Create Table
+	  );`
 )
 
-func CreateResource(db *sql.DB, creatorId models.UserId, content string) (*models.Resource, error) {
-	res := &models.Resource{
+func (db *AppDatabase) CreateResource(creatorId m.UserId, content string) (*m.Resource, error) {
+	res := &m.Resource{
 		UserId:  creatorId,
 		Content: content,
 	}
-	insertResources(db, res)
+	db.insertResources(res)
 
 	return res, nil
 }
 
-func insertResources(db *sql.DB, r *models.Resource) {
+func (db *AppDatabase) insertResources(r *m.Resource) {
 	log.Println("Inserting resources record ...")
 
 	query := `INSERT INTO resources
     (` + ResourceCreatorColumn + `, ` + ResourceContentColumn + `) 
     VALUES (?, ?)`
-	statement, err := db.Prepare(query) // Prepare statement.
-	// This is good to avoid SQL injections
+	statement, err := db.connection.Prepare(query) // Prepare statement.
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
@@ -47,19 +46,14 @@ func insertResources(db *sql.DB, r *models.Resource) {
 	}
 }
 
-func GetResources(db *sql.DB, userId models.UserId) []*models.Resource {
-	// if UserIsAdmin(db, username) {
-	// q = `SELECT * FROM resources`
-	// row, err = db.Query(q)
-	// } else {
+func (db *AppDatabase) GetResources(userId m.UserId) []*m.Resource {
 	q := "SELECT " + ResourceIdColumn + ", " + ResourceCreatorColumn + ", " + ResourceContentColumn + ` FROM resources WHERE id_user = ?`
-	row, err := db.Query(q, userId)
-	// }
+	row, err := db.connection.Query(q, userId)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer row.Close()
-	resources := []*models.Resource{}
+	resources := []*m.Resource{}
 	for row.Next() {
 		resource, err := getResourceFromRow(row)
 		if err != nil {
@@ -70,17 +64,17 @@ func GetResources(db *sql.DB, userId models.UserId) []*models.Resource {
 	return resources
 }
 
-func getResourceFromRow(row *sql.Rows) (*models.Resource, error) {
-	resource := &models.Resource{}
+func getResourceFromRow(row *sql.Rows) (*m.Resource, error) {
+	resource := &m.Resource{}
 	if err := row.Scan(&resource.Id, &resource.UserId, &resource.Content); err != nil {
 		return nil, err
 	}
 
 	return resource, nil
 }
-func GetResourceById(db *sql.DB, id models.ResourceId) (*models.Resource, error) {
+func (db *AppDatabase) GetResourceById(id m.ResourceId) (*m.Resource, error) {
 	query := "SELECT * FROM resources WHERE " + ResourceIdColumn + " = ?"
-	stmt, err := db.Prepare(query)
+	stmt, err := db.connection.Prepare(query)
 
 	if err != nil {
 		return nil, err
@@ -100,14 +94,14 @@ func GetResourceById(db *sql.DB, id models.ResourceId) (*models.Resource, error)
 	return nil, errors.New(fmt.Sprintf("No such resource with id %d", id))
 }
 
-func DeleteResource(db *sql.DB, id models.ResourceId) error {
+func (db *AppDatabase) DeleteResource(id m.ResourceId) error {
 	q := `DELETE FROM resources WHERE ` + ResourceIdColumn + ` = ?`
-	_, err := db.Exec(q, id)
+	_, err := db.connection.Exec(q, id)
 	return err
 }
 
-func UpdateResource(db *sql.DB, r models.Resource) error {
+func (db *AppDatabase) UpdateResource(r m.Resource) error {
 	q := `UPDATE resources SET ` + ResourceContentColumn + ` = ?  WHERE ` + ResourceIdColumn + ` = ?`
-	_, err := db.Exec(q, r.Content, r.Id)
+	_, err := db.connection.Exec(q, r.Content, r.Id)
 	return err
 }

@@ -9,11 +9,16 @@ import (
 )
 
 const (
-	createUsersTableSQL = `CREATE TABLE IF NOT EXISTS users (
-		"id_user" integer NOT NULL PRIMARY KEY AUTOINCREMENT,		
-		"name" TEXT UNIQUE NOT NULL,
-    "password" TEXT NOT NULL,
-		"is_admin" BOOLEAN DEFAULT FALSE
+	UsersTableName      = "users"
+	UserIdColumn        = "id_user"
+	UserNameColumn      = "name"
+	UserPasswordColumn  = "password"
+	UserIsAdminColumn   = "is_admin"
+	createUsersTableSQL = `CREATE TABLE IF NOT EXISTS ` + UsersTableName + ` (
+		"` + UserIdColumn + `" integer NOT NULL PRIMARY KEY AUTOINCREMENT,		
+		"` + UserNameColumn + `" TEXT UNIQUE NOT NULL,
+    "` + UserPasswordColumn + `" TEXT NOT NULL,
+		"` + UserIsAdminColumn + `" BOOLEAN DEFAULT FALSE
 	  );`
 )
 
@@ -26,9 +31,20 @@ func getUserFromRow(row *sql.Rows) (*m.User, error) {
 	return user, nil
 }
 
-func GetUsers(db *sql.DB) []*m.User {
-	q := `SELECT * FROM users`
-	row, err := db.Query(q)
+func (db *AppDatabase) UserExists(username string) bool {
+	q := `SELECT COUNT(name) FROM users WHERE name = ?`
+	row := db.connection.QueryRow(q, username)
+	var count int
+	err := row.Scan(&count)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return count == 1
+}
+
+func (db *AppDatabase) GetUsers() []*m.User {
+	q := "SELECT * FROM " + UsersTableName
+	row, err := db.connection.Query(q)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -44,9 +60,9 @@ func GetUsers(db *sql.DB) []*m.User {
 	return users
 }
 
-func GetUserById(db *sql.DB, id int) (*m.User, error) {
-	query := "SELECT * FROM users WHERE id_user = ?"
-	stmt, err := db.Prepare(query)
+func (db *AppDatabase) GetUserById(id int) (*m.User, error) {
+	query := "SELECT * FROM " + UsersTableName + " WHERE " + UserIdColumn + " = ?"
+	stmt, err := db.connection.Prepare(query)
 
 	if err != nil {
 		return nil, err
@@ -65,9 +81,9 @@ func GetUserById(db *sql.DB, id int) (*m.User, error) {
 	}
 	return nil, errors.New(fmt.Sprintf("No such user with id %d", id))
 }
-func GetUserByName(db *sql.DB, name string) (*m.User, error) {
+func (db *AppDatabase) GetUserByName(name string) (*m.User, error) {
 	query := "SELECT * FROM users WHERE name = ?"
-	stmt, err := db.Prepare(query)
+	stmt, err := db.connection.Prepare(query)
 
 	if err != nil {
 		return nil, err
@@ -84,4 +100,46 @@ func GetUserByName(db *sql.DB, name string) (*m.User, error) {
 		return user, err
 	}
 	return nil, errors.New(fmt.Sprintf("No such user with name '%s'", name))
+}
+
+func (db *AppDatabase) MakeAdmin(id m.UserId) error {
+	q := "UPDATE " + UsersTableName + " SET " + UserIsAdminColumn + " = 1 WHERE " + UserIdColumn + " = ?"
+	_, err := db.connection.Exec(q, id)
+	return err
+}
+func (db *AppDatabase) CreateUser(name string, password string) (*m.User, error) {
+	if db.UserExists(name) {
+		return nil, errors.New("This username is occupied")
+	}
+	user := m.User{
+		Name:     name,
+		Password: password,
+		IsAdmin:  false,
+	}
+	err := db.insertUser(user)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+func (db *AppDatabase) insertUser(user m.User) error {
+	insertUsersSQL := `INSERT INTO users(name, password, is_admin) VALUES (?, ?, ?)`
+	statement, err := db.connection.Prepare(insertUsersSQL) // Prepare statement.
+	// This is good to avoid SQL injections
+	if err != nil {
+		return err
+	}
+	_, err = statement.Exec(user.Name, user.Password, false)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (db *AppDatabase) DeleteUser(id m.UserId) error {
+	q := `DELETE FROM ` + UsersTableName + ` WHERE ` + UserIdColumn + ` = ?`
+	_, err := db.connection.Exec(q, id)
+	// TODO: cascade deletion is not supported by current tables so should delete all data of deleting user
+	return err
 }

@@ -2,6 +2,8 @@ package storage
 
 import (
 	"database/sql"
+	"errors"
+	"fmt"
 	"log"
 
 	m "cdecode/pkg/models"
@@ -21,13 +23,12 @@ const (
 	  );` // SQL Statement for Create Table
 )
 
-func GetAliases(db *sql.DB, user_id m.UserId) []m.Alias {
+func (db *AppDatabase) GetAliases(user_id m.UserId) []m.Alias {
 	var row *sql.Rows
 	var err error
 	var q string
-	q = `SELECT * FROM alias WHERE id_user = ?`
-	//if admin, q = `SELECT * FROM alias`
-	row, err = db.Query(q, user_id)
+	q = `SELECT ` + AliasIdColumn + ", " + AliasCreatorColumn + ", " + AliasResourceColumn + ", " + AliasNameColumn + ` FROM alias WHERE id_user = ?`
+	row, err = db.connection.Query(q, user_id)
 
 	if err != nil {
 		log.Fatal(err)
@@ -55,10 +56,10 @@ func getAliasFromRow(row *sql.Rows) (*m.Alias, error) {
 }
 
 // Check no duplicated name of alias
-func checkIfAliasHasNoDupes(db *sql.DB, alias string) bool {
+func (db *AppDatabase) checkIfAliasHasNoDupes(alias string) bool {
 	var count int
 	q := `SELECT COUNT(name) FROM alias WHERE name = ?`
-	row := db.QueryRow(q, alias)
+	row := db.connection.QueryRow(q, alias)
 	err := row.Scan(&count)
 	if err != nil {
 		log.Fatal(err)
@@ -67,24 +68,24 @@ func checkIfAliasHasNoDupes(db *sql.DB, alias string) bool {
 }
 
 // new create and insert aliases
-func CreateAlias(db *sql.DB, creatorId m.UserId, name string, resourceId m.ResourceId) (*m.Alias, error) {
+func (db *AppDatabase) CreateAlias(creatorId m.UserId, name string, resourceId m.ResourceId) (*m.Alias, error) {
 	alias := &m.Alias{
 		CreatorId:  creatorId,
 		Name:       name,
 		ResourceId: resourceId,
 	}
-	insertAlias(db, alias)
+	db.insertAlias(alias)
 
 	return alias, nil
 }
 
-func insertAlias(db *sql.DB, a *m.Alias) {
+func (db *AppDatabase) insertAlias(a *m.Alias) {
 	log.Println("Inserting resources record ...")
 
 	query := `INSERT INTO alias
     (` + AliasCreatorColumn + `, ` + AliasNameColumn + ", " + AliasResourceColumn + `) 
     VALUES (?, ?, ?)`
-	statement, err := db.Prepare(query) // Prepare statement.
+	statement, err := db.connection.Prepare(query) // Prepare statement.
 	// This is good to avoid SQL injections
 	if err != nil {
 		log.Fatalln(err.Error())
@@ -95,39 +96,52 @@ func insertAlias(db *sql.DB, a *m.Alias) {
 	}
 }
 
-// Creates new alias
-// func CreateAlias(db *sql.DB, username string, resourceName string, alias string) {
-// 	if !checkIfAliasHasNoDupes(db, alias) {
-// 		log.Printf("Alias '%s' already exist", alias)
-// 		return //alias name already exists
-// 	}
-// 	newAlias := m.Alias{
-// 		CreatorId:  GetUserId(db, username),
-// 		ResourceId: GetResourceId(db, username, resourceName),
-// 		Name:       alias,
-// 	}
-// 	insertAlias(db, newAlias)
-// }
+func (db *AppDatabase) GetAliasById(id m.AliasId) (*m.Alias, error) {
+	query := "SELECT * FROM alias WHERE " + AliasIdColumn + " = ?"
+	stmt, err := db.connection.Prepare(query)
 
-// // Creates new entity in database
-// func insertAlias(db *sql.DB, alias m.Alias) {
-// 	log.Println("Adding new alias...")
-// 	insertAliasSQL := "INSERT INTO alias(id_user, id_resource, name) VALUES (?, ?, ?)"
-// 	statement, err := db.Prepare(insertAliasSQL) // Prepare statement.
-// 	if err != nil {
-// 		log.Fatalln(err.Error())
-// 	}
-// 	_, err = statement.Exec(alias.CreatorId, alias.ResourceId, alias.Name)
-// 	if err != nil {
-// 		log.Fatalln(err.Error())
-// 	}
-// 	log.Printf("Alias '%s' for resource '%d' added", alias.Name, alias.ResourceId)
-// }
+	if err != nil {
+		return nil, err
+	}
 
-func ReadContentByAlias(db *sql.DB, alias string) string {
+	row, err := stmt.Query(id)
+
+	if err != nil {
+		return nil, err
+	}
+	defer row.Close()
+	for row.Next() {
+		alias, err := getAliasFromRow(row)
+		return alias, err
+	}
+	return nil, errors.New(fmt.Sprintf("No such alias with id %d", id))
+}
+
+func (db *AppDatabase) GetAliasByName(name string) (*m.Alias, error) {
+	query := "SELECT * FROM alias WHERE " + AliasNameColumn + " = ?"
+	stmt, err := db.connection.Prepare(query)
+
+	if err != nil {
+		return nil, err
+	}
+
+	row, err := stmt.Query(name)
+
+	if err != nil {
+		return nil, err
+	}
+	defer row.Close()
+	for row.Next() {
+		alias, err := getAliasFromRow(row)
+		return alias, err
+	}
+	return nil, errors.New(fmt.Sprintf("No such alias with name '%s'", name))
+}
+
+func (db *AppDatabase) ReadContentByAlias(alias string) string {
 	var row *sql.Rows
 	q := `SELECT content FROM resources WHERE id_resource = (SELECT id_resource FROM alias WHERE name = ?)`
-	row, err := db.Query(q, alias)
+	row, err := db.connection.Query(q, alias)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -138,9 +152,15 @@ func ReadContentByAlias(db *sql.DB, alias string) string {
 	}
 	var content string
 
-	if scan_err := row.Scan(&content); err != nil {
-		log.Fatal(scan_err)
+	if err = row.Scan(&content); err != nil {
+		log.Fatal(err)
 	}
 	log.Printf("Content: %s", content)
 	return content
+}
+
+func (db *AppDatabase) DeleteAlias(id m.AliasId) error {
+	q := `DELETE FROM alias WHERE ` + AliasIdColumn + ` = ?`
+	_, err := db.connection.Exec(q, id)
+	return err
 }

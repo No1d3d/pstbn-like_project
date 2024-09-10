@@ -2,14 +2,15 @@ package handlers
 
 import (
 	m "cdecode/pkg/models"
-	"cdecode/pkg/storage"
-	"database/sql"
+	s "cdecode/pkg/storage"
+	"log"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
 type createAliasData struct {
-	Name       string       `json:"content"`
+	Name       string       `json:"name"`
 	ResourceId m.ResourceId `json:"resourceId"`
 }
 
@@ -17,7 +18,7 @@ func (d createAliasData) Validate() bool {
 	return d.Name != "" && d.ResourceId >= 0
 }
 
-func CreateAliases(db *sql.DB) Handler {
+func CreateAlias(res s.DatabaseResolver) Handler {
 	return authenticated(func(ctx *gin.Context, auth *AuthState) {
 		var data createAliasData
 		ctx.BindJSON(&data)
@@ -26,7 +27,10 @@ func CreateAliases(db *sql.DB) Handler {
 			return
 		}
 
-		r, err := storage.CreateAlias(db, auth.Claims.UserId(), data.Name, data.ResourceId)
+		db := res()
+		defer db.Close()
+
+		r, err := db.CreateAlias(auth.Claims.UserId(), data.Name, data.ResourceId)
 
 		if err != nil {
 			ResultFromError(ctx, err)
@@ -37,9 +41,42 @@ func CreateAliases(db *sql.DB) Handler {
 	})
 }
 
-func GetAliases(db *sql.DB) Handler {
+func DeleteAlias(res s.DatabaseResolver) Handler {
 	return authenticated(func(ctx *gin.Context, auth *AuthState) {
-		res := storage.GetAliases(db, auth.Claims.UserId())
-		ctx.JSON(200, res)
+
+		id, _ := strconv.Atoi(ctx.Param("id"))
+
+		db := res()
+		defer db.Close()
+
+		alias, err := db.GetAliasById(id)
+		if err != nil {
+			log.Println(err)
+			NotFound(ctx)
+			return
+		}
+
+		if alias.CreatorId != auth.Claims.UserId() {
+			log.Println("User tried to delete alias that he is not own")
+			NotFound(ctx)
+			return
+		}
+
+		err = db.DeleteAlias(id)
+		if err != nil {
+			ResultFromError(ctx, err)
+			return
+		}
+		Success(ctx)
+
+	})
+}
+
+func GetAliases(res s.DatabaseResolver) Handler {
+	return authenticated(func(ctx *gin.Context, auth *AuthState) {
+		db := res()
+		defer db.Close()
+		result := db.GetAliases(auth.Claims.UserId())
+		ctx.JSON(200, result)
 	})
 }

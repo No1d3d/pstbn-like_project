@@ -1,16 +1,14 @@
 package handlers
 
 import (
-	"database/sql"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/gin-gonic/gin"
-	// "github.com/golang-jwt/jwt/v5"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/gin-gonic/gin"
 
 	"cdecode/pkg/models"
 	s "cdecode/pkg/storage"
@@ -24,13 +22,16 @@ var (
 	AuthKey = []byte("Some cool key")
 )
 
-func Authenticate(db *sql.DB) Handler {
+func Authenticate(res s.DatabaseResolver) Handler {
 	return func(ctx *gin.Context) {
 
 		var data AuthData
 		ctx.BindJSON(&data)
 
-		user, err := s.GetUserByName(db, data.Name)
+		db := res()
+		defer db.Close()
+
+		user, err := db.GetUserByName(data.Name)
 		if err != nil {
 			LoginError(ctx)
 			return
@@ -102,15 +103,12 @@ func getAuthState(ctx *gin.Context) AuthState {
 		log.Printf("No authorization header ('%s')", AuthHeader)
 		return noAuth()
 	}
-	log.Printf("Auth header: '%s'", header)
 
 	s := strings.Split(header, " ")
 	if len(s) < 2 {
 		log.Printf("Not valid header, less than two words in it")
 		return noAuth()
 	}
-
-	log.Printf("Token string: '%s'", s[1])
 
 	var claims ApplicationClaims
 	_, err := jwt.ParseWithClaims(s[1], &claims, func(t *jwt.Token) (interface{}, error) {

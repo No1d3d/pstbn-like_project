@@ -1,2 +1,3 @@
-storage/mydb.db
+*.db
 *.exe
+build/
