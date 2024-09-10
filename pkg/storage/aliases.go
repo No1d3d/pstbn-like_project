@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 
-	"cdecode/pkg/models"
 	m "cdecode/pkg/models"
 )
 
@@ -160,7 +159,7 @@ func (db *AppDatabase) ReadContentByAlias(alias string) string {
 	return content
 }
 
-func (db *AppDatabase) DeleteAlias(id models.AliasId) error {
+func (db *AppDatabase) DeleteAlias(id m.AliasId) error {
 	q := `DELETE FROM alias WHERE ` + AliasIdColumn + ` = ?`
 	_, err := db.connection.Exec(q, id)
 	return err

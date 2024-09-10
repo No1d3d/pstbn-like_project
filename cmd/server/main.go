@@ -3,15 +3,10 @@ package main
 import (
 	h "cdecode/pkg/handlers"
 	s "cdecode/pkg/storage"
-	"database/sql"
 	"log"
 
 	"github.com/gin-gonic/gin"
 )
-
-const defaultUsername = "admin"
-
-var db *sql.DB
 
 func main() {
 	// db setup

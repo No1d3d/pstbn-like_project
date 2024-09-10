@@ -137,23 +137,9 @@ func (db *AppDatabase) insertUser(user m.User) error {
 	return nil
 }
 
-// First to refactor
-// TODO: refactor this
-func DeleteUser(db *sql.DB, username *string, target string, new_username string) {
-	log.Println("Deleting all resources for user ", target)
-	q := `DELETE FROM resources WHERE id_user = ?`
-	_, err := db.Exec(q, GetUserId(db, target))
-	if err != nil {
-		panic(err)
-	}
-	log.Println("Deleting user ", target)
-	q = `DELETE FROM users WHERE name = ?`
-	_, err = db.Exec(q, target)
-	if err != nil {
-		panic(err)
-	}
-	if target == *username {
-		// RegisterUser(db, new_username)
-		username = &new_username
-	}
+func (db *AppDatabase) DeleteUser(id m.UserId) error {
+	q := `DELETE FROM ` + UsersTableName + ` WHERE ` + UserIdColumn + ` = ?`
+	_, err := db.connection.Exec(q, id)
+	// TODO: cascade deletion is not supported by current tables so should delete all data of deleting user
+	return err
 }

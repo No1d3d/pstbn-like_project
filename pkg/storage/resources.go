@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"cdecode/pkg/models"
+	m "cdecode/pkg/models"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -20,8 +20,8 @@ const (
 	  );`
 )
 
-func (db *AppDatabase) CreateResource(creatorId models.UserId, content string) (*models.Resource, error) {
-	res := &models.Resource{
+func (db *AppDatabase) CreateResource(creatorId m.UserId, content string) (*m.Resource, error) {
+	res := &m.Resource{
 		UserId:  creatorId,
 		Content: content,
 	}
@@ -30,7 +30,7 @@ func (db *AppDatabase) CreateResource(creatorId models.UserId, content string) (
 	return res, nil
 }
 
-func (db *AppDatabase) insertResources(r *models.Resource) {
+func (db *AppDatabase) insertResources(r *m.Resource) {
 	log.Println("Inserting resources record ...")
 
 	query := `INSERT INTO resources
@@ -46,14 +46,14 @@ func (db *AppDatabase) insertResources(r *models.Resource) {
 	}
 }
 
-func (db *AppDatabase) GetResources(userId models.UserId) []*models.Resource {
+func (db *AppDatabase) GetResources(userId m.UserId) []*m.Resource {
 	q := "SELECT " + ResourceIdColumn + ", " + ResourceCreatorColumn + ", " + ResourceContentColumn + ` FROM resources WHERE id_user = ?`
 	row, err := db.connection.Query(q, userId)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer row.Close()
-	resources := []*models.Resource{}
+	resources := []*m.Resource{}
 	for row.Next() {
 		resource, err := getResourceFromRow(row)
 		if err != nil {
@@ -64,15 +64,15 @@ func (db *AppDatabase) GetResources(userId models.UserId) []*models.Resource {
 	return resources
 }
 
-func getResourceFromRow(row *sql.Rows) (*models.Resource, error) {
-	resource := &models.Resource{}
+func getResourceFromRow(row *sql.Rows) (*m.Resource, error) {
+	resource := &m.Resource{}
 	if err := row.Scan(&resource.Id, &resource.UserId, &resource.Content); err != nil {
 		return nil, err
 	}
 
 	return resource, nil
 }
-func (db *AppDatabase) GetResourceById(id models.ResourceId) (*models.Resource, error) {
+func (db *AppDatabase) GetResourceById(id m.ResourceId) (*m.Resource, error) {
 	query := "SELECT * FROM resources WHERE " + ResourceIdColumn + " = ?"
 	stmt, err := db.connection.Prepare(query)
 
@@ -94,13 +94,13 @@ func (db *AppDatabase) GetResourceById(id models.ResourceId) (*models.Resource, 
 	return nil, errors.New(fmt.Sprintf("No such resource with id %d", id))
 }
 
-func (db *AppDatabase) DeleteResource(id models.ResourceId) error {
+func (db *AppDatabase) DeleteResource(id m.ResourceId) error {
 	q := `DELETE FROM resources WHERE ` + ResourceIdColumn + ` = ?`
 	_, err := db.connection.Exec(q, id)
 	return err
 }
 
-func (db *AppDatabase) UpdateResource(r models.Resource) error {
+func (db *AppDatabase) UpdateResource(r m.Resource) error {
 	q := `UPDATE resources SET ` + ResourceContentColumn + ` = ?  WHERE ` + ResourceIdColumn + ` = ?`
 	_, err := db.connection.Exec(q, r.Content, r.Id)
 	return err
