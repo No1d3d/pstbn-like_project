@@ -6,39 +6,20 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"os"
 
 	_ "github.com/mattn/go-sqlite3" // Import go-sqlite3 library
 )
 
-func CheckFileExists(filePath string) bool {
-	_, error := os.Stat(filePath)
-	return !errors.Is(error, os.ErrNotExist)
-}
-
 var DbFile = "./pkg/storage/mydb.db"
 
 func InitDB() *sql.DB {
-	// if db does not exist, creates one
-	if !CheckFileExists(DbFile) {
-		log.Printf("Creating database file '%s'\n", DbFile)
-		file, err := os.Create(DbFile)
-		if err != nil {
-			log.Fatal(err.Error())
-		}
-		file.Close()
-		log.Printf("Database file '%s' created", DbFile)
-	}
-	// opens db
+
 	db, _ := sql.Open("sqlite3", DbFile)
 
-	// create users table
 	createTable(db, createUsersTableSQL)
 
-	// create resources table
 	createTable(db, createResourcesTableSQL)
 
-	// create alias table
 	createTable(db, createAliasTableSQL)
 
 	return db
