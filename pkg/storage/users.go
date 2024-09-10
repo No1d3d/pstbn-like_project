@@ -9,11 +9,16 @@ import (
 )
 
 const (
-	createUsersTableSQL = `CREATE TABLE IF NOT EXISTS users (
-		"id_user" integer NOT NULL PRIMARY KEY AUTOINCREMENT,		
-		"name" TEXT UNIQUE NOT NULL,
-    "password" TEXT NOT NULL,
-		"is_admin" BOOLEAN DEFAULT FALSE
+	UsersTableName      = "users"
+	UserIdColumn        = "id_user"
+	UserNameColumn      = "name"
+	UserPasswordColumn  = "password"
+	UserIsAdminColumn   = "is_admin"
+	createUsersTableSQL = `CREATE TABLE IF NOT EXISTS ` + UsersTableName + ` (
+		"` + UserIdColumn + `" integer NOT NULL PRIMARY KEY AUTOINCREMENT,		
+		"` + UserNameColumn + `" TEXT UNIQUE NOT NULL,
+    "` + UserPasswordColumn + `" TEXT NOT NULL,
+		"` + UserIsAdminColumn + `" BOOLEAN DEFAULT FALSE
 	  );`
 )
 
@@ -27,7 +32,7 @@ func getUserFromRow(row *sql.Rows) (*m.User, error) {
 }
 
 func GetUsers(db *sql.DB) []*m.User {
-	q := `SELECT * FROM users`
+	q := "SELECT * FROM " + UsersTableName
 	row, err := db.Query(q)
 	if err != nil {
 		log.Fatal(err)
@@ -45,7 +50,7 @@ func GetUsers(db *sql.DB) []*m.User {
 }
 
 func GetUserById(db *sql.DB, id int) (*m.User, error) {
-	query := "SELECT * FROM users WHERE id_user = ?"
+	query := "SELECT * FROM " + UsersTableName + " WHERE " + UserIdColumn + " = ?"
 	stmt, err := db.Prepare(query)
 
 	if err != nil {
@@ -84,4 +89,10 @@ func GetUserByName(db *sql.DB, name string) (*m.User, error) {
 		return user, err
 	}
 	return nil, errors.New(fmt.Sprintf("No such user with name '%s'", name))
+}
+
+func MakeAdmin(db *sql.DB, id m.UserId) error {
+	q := "UPDATE " + UsersTableName + " SET " + UserIsAdminColumn + " = 1 WHERE " + UserIdColumn + " = ?"
+	_, err := db.Exec(q, id)
+	return err
 }

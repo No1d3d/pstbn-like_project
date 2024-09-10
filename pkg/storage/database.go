@@ -42,15 +42,6 @@ func createTable(db *sql.DB, query string) {
 	log.Println("Table created")
 }
 
-func MakeAdmin(db *sql.DB, username string) {
-	q := `UPDATE users SET is_admin = 1 WHERE id_user = ?;`
-	_, err := db.Exec(q, GetUserId(db, username))
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("User <", username, "> now has admin rights!")
-}
-
 func UserExists(db *sql.DB, username string) bool {
 	var count int
 	q := `SELECT COUNT(name) FROM users WHERE name = ?`
