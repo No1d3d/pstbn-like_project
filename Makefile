@@ -1,14 +1,16 @@
-.PHONY: run-server run-server-release run-shell run-release 
+.PHONY: run-server run-server-release run-release 
 
-run-server:
-	@go run ./cmd/server/main.go
+OUTPUT := ./build/srv
+MAIN_FILE := ./cmd/server/main.go
 
-run-server-release:
-	@GIN_MODE=release go run ./cmd/server/main.go
-		
-run-shell:
-	@go run ./cmd/cli/main.go
+build:
+	@go build -o $(OUTPUT) $(MAIN_FILE)
 
-run: run-server
+build-release:
+	@GIN_MODE=release go build -o $(OUTPUT) $(MAIN_FILE)
 
-run-release: run-server-release
+run: build
+	./$(OUTPUT)
+
+run-release: build-release
+	./$(OUTPUT)
