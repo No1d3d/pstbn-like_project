@@ -17,27 +17,26 @@ const (
 		"` + ResourceIdColumn + `" integer NOT NULL PRIMARY KEY AUTOINCREMENT
 		,"` + ResourceCreatorColumn + `" integer NOT NULL
 		,"` + ResourceContentColumn + `" TEXT
-	  );` // SQL Statement for Create Table
+	  );`
 )
 
-func CreateResource(db *sql.DB, creatorId models.UserId, content string) (*models.Resource, error) {
+func (db *AppDatabase) CreateResource(creatorId models.UserId, content string) (*models.Resource, error) {
 	res := &models.Resource{
 		UserId:  creatorId,
 		Content: content,
 	}
-	insertResources(db, res)
+	db.insertResources(res)
 
 	return res, nil
 }
 
-func insertResources(db *sql.DB, r *models.Resource) {
+func (db *AppDatabase) insertResources(r *models.Resource) {
 	log.Println("Inserting resources record ...")
 
 	query := `INSERT INTO resources
     (` + ResourceCreatorColumn + `, ` + ResourceContentColumn + `) 
     VALUES (?, ?)`
-	statement, err := db.Prepare(query) // Prepare statement.
-	// This is good to avoid SQL injections
+	statement, err := db.connection.Prepare(query) // Prepare statement.
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
@@ -47,14 +46,9 @@ func insertResources(db *sql.DB, r *models.Resource) {
 	}
 }
 
-func GetResources(db *sql.DB, userId models.UserId) []*models.Resource {
-	// if UserIsAdmin(db, username) {
-	// q = `SELECT * FROM resources`
-	// row, err = db.Query(q)
-	// } else {
+func (db *AppDatabase) GetResources(userId models.UserId) []*models.Resource {
 	q := "SELECT " + ResourceIdColumn + ", " + ResourceCreatorColumn + ", " + ResourceContentColumn + ` FROM resources WHERE id_user = ?`
-	row, err := db.Query(q, userId)
-	// }
+	row, err := db.connection.Query(q, userId)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -78,9 +72,9 @@ func getResourceFromRow(row *sql.Rows) (*models.Resource, error) {
 
 	return resource, nil
 }
-func GetResourceById(db *sql.DB, id models.ResourceId) (*models.Resource, error) {
+func (db *AppDatabase) GetResourceById(id models.ResourceId) (*models.Resource, error) {
 	query := "SELECT * FROM resources WHERE " + ResourceIdColumn + " = ?"
-	stmt, err := db.Prepare(query)
+	stmt, err := db.connection.Prepare(query)
 
 	if err != nil {
 		return nil, err
@@ -100,14 +94,14 @@ func GetResourceById(db *sql.DB, id models.ResourceId) (*models.Resource, error)
 	return nil, errors.New(fmt.Sprintf("No such resource with id %d", id))
 }
 
-func DeleteResource(db *sql.DB, id models.ResourceId) error {
+func (db *AppDatabase) DeleteResource(id models.ResourceId) error {
 	q := `DELETE FROM resources WHERE ` + ResourceIdColumn + ` = ?`
-	_, err := db.Exec(q, id)
+	_, err := db.connection.Exec(q, id)
 	return err
 }
 
-func UpdateResource(db *sql.DB, r models.Resource) error {
+func (db *AppDatabase) UpdateResource(r models.Resource) error {
 	q := `UPDATE resources SET ` + ResourceContentColumn + ` = ?  WHERE ` + ResourceIdColumn + ` = ?`
-	_, err := db.Exec(q, r.Content, r.Id)
+	_, err := db.connection.Exec(q, r.Content, r.Id)
 	return err
 }

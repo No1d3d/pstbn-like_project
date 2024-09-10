@@ -2,8 +2,7 @@ package handlers
 
 import (
 	m "cdecode/pkg/models"
-	"cdecode/pkg/storage"
-	"database/sql"
+	s "cdecode/pkg/storage"
 	"log"
 	"strconv"
 
@@ -19,7 +18,7 @@ func (d createAliasData) Validate() bool {
 	return d.Name != "" && d.ResourceId >= 0
 }
 
-func CreateAlias(db *sql.DB) Handler {
+func CreateAlias(res s.DatabaseResolver) Handler {
 	return authenticated(func(ctx *gin.Context, auth *AuthState) {
 		var data createAliasData
 		ctx.BindJSON(&data)
@@ -28,7 +27,10 @@ func CreateAlias(db *sql.DB) Handler {
 			return
 		}
 
-		r, err := storage.CreateAlias(db, auth.Claims.UserId(), data.Name, data.ResourceId)
+		db := res()
+		defer db.Close()
+
+		r, err := db.CreateAlias(auth.Claims.UserId(), data.Name, data.ResourceId)
 
 		if err != nil {
 			ResultFromError(ctx, err)
@@ -39,12 +41,15 @@ func CreateAlias(db *sql.DB) Handler {
 	})
 }
 
-func DeleteAlias(db *sql.DB) Handler {
+func DeleteAlias(res s.DatabaseResolver) Handler {
 	return authenticated(func(ctx *gin.Context, auth *AuthState) {
 
 		id, _ := strconv.Atoi(ctx.Param("id"))
 
-		alias, err := storage.GetAliasById(db, id)
+		db := res()
+		defer db.Close()
+
+		alias, err := db.GetAliasById(id)
 		if err != nil {
 			log.Println(err)
 			NotFound(ctx)
@@ -57,7 +62,7 @@ func DeleteAlias(db *sql.DB) Handler {
 			return
 		}
 
-		err = storage.DeleteAlias(db, id)
+		err = db.DeleteAlias(id)
 		if err != nil {
 			ResultFromError(ctx, err)
 			return
@@ -67,9 +72,11 @@ func DeleteAlias(db *sql.DB) Handler {
 	})
 }
 
-func GetAliases(db *sql.DB) Handler {
+func GetAliases(res s.DatabaseResolver) Handler {
 	return authenticated(func(ctx *gin.Context, auth *AuthState) {
-		res := storage.GetAliases(db, auth.Claims.UserId())
-		ctx.JSON(200, res)
+		db := res()
+		defer db.Close()
+		result := db.GetAliases(auth.Claims.UserId())
+		ctx.JSON(200, result)
 	})
 }

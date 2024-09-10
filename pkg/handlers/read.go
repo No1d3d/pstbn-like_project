@@ -1,24 +1,25 @@
 package handlers
 
 import (
-	"cdecode/pkg/storage"
-	"database/sql"
+	s "cdecode/pkg/storage"
 	"log"
 
 	"github.com/gin-gonic/gin"
 )
 
-func Read(db *sql.DB) Handler {
+func Read(res s.DatabaseResolver) Handler {
 	return func(ctx *gin.Context) {
 		name := ctx.Param("name")
-		alias, err := storage.GetAliasByName(db, name)
+		db := res()
+		defer db.Close()
+		alias, err := db.GetAliasByName(name)
 		if err != nil {
 			log.Println(err)
 			NotFound(ctx)
 			return
 		}
 
-		res, err := storage.GetResourceById(db, alias.ResourceId)
+		res, err := db.GetResourceById(alias.ResourceId)
 
 		if err != nil {
 			log.Println(err)
